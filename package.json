@@ -1,0 +1,25 @@
+{
+  "name": "github-webhook-to-telegram",
+  "version": "2.0.0",
+  "private": true,
+  "description": "将 GitHub Webhook 转发到 Telegram 的 Cloudflare Workers 服务",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "npm run typecheck && wrangler deploy --dry-run --outdir dist --metafile",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "deploy": "wrangler deploy"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260307.1",
+    "@types/node": "^25.3.5",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18",
+    "wrangler": "^4.71.0"
+  }
+}

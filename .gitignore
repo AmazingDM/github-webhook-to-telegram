@@ -2,6 +2,13 @@
 __pycache__/
 /venv/
 
+# Node.js / Workers
+/node_modules/
+/.wrangler/
+/coverage/
+dist/
+/.dev.vars
+
 # Vim
 [._]*.sw[a-p]
 

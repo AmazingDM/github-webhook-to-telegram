@@ -1,6 +1,4 @@
 {
-  "bot_token": "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
-  "port": 12345,
   "gh_webhooks": {
     "Codertocat/Hello-World": {
       "chat_id": -1001234567890,
