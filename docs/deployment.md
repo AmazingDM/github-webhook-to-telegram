@@ -1,123 +1,85 @@
-# 部署教程
+# 部署总览
 
-本文档说明如何把项目部署到 Cloudflare Workers，并配套启用 GitHub Actions 自动构建。
+当前仓库的部署说明拆分为两条链路，按职责分别阅读：
 
-## 1. 前置条件
-- 拥有 Cloudflare 账号
-- 已安装 Node.js 20+
-- 已安装 npm 10+
-- 已有 Telegram Bot Token
-- 已准备好 `HOOK_CONFIG_JSON`
+- [GitHub Actions 部署说明](deployment-actions.md)
+  适合整理 CI、仓库 Secrets、构建产物和后续自动发布流程。
+- [Cloudflare Worker 自动部署说明](deployment-worker-auto.md)
+  适合整理 Worker 侧配置、Wrangler、运行时变量和 GitHub Webhook 回填信息。
 
-## 2. Cloudflare 本地登录
-第一次部署前，需要先让 Wrangler 连接你的 Cloudflare 账号：
+## 1. 当前仓库现状
 
-```bash
-npx wrangler login
-```
+仓库已经包含工作流文件 [`.github/workflows/python-package.yml`](../.github/workflows/python-package.yml)，当前行为是：
 
-登录成功后，Wrangler 会在本地保存授权信息。
-
-## 3. 初始化生产环境变量
-本项目运行至少需要两个变量：
-- `BOT_TOKEN`
-- `HOOK_CONFIG_JSON`
-
-### 3.1 使用 Wrangler Secret 设置 `BOT_TOKEN`
-```bash
-npx wrangler secret put BOT_TOKEN
-```
-
-执行后按提示输入真实 Token。
-
-### 3.2 设置 `HOOK_CONFIG_JSON`
-如果配置内容较短，可以直接在 `wrangler.toml` 对应环境中维护；如果希望统一保存在 Cloudflare 侧，也可以在部署命令中通过环境文件管理。
-
-推荐做法：
-1. 在本地准备单独的环境文件
-2. 部署时通过 `--env-file` 注入
-
-如果你希望走 GitHub Actions，则建议把它放入 GitHub Repository Secrets。
-
-## 4. 本地打包验证
-在真正部署前，先执行：
-
-```bash
-npm run build
-```
-
-该命令会：
-1. 执行 TypeScript 类型检查
-2. 通过 `wrangler deploy --dry-run` 完成打包
-3. 输出 `dist/` 构建目录
-4. 输出 `dist/bundle-meta.json`
-
-## 5. 本地手动部署
-```bash
-npm run deploy
-```
-
-部署成功后，Wrangler 会输出 Worker 的地址，例如：
-
-```text
-https://github-webhook-to-telegram.<your-subdomain>.workers.dev
-```
-
-把这个地址填到 GitHub Webhook 的 `Payload URL`。
-
-## 6. 配置 GitHub Actions 自动构建
-仓库内已经包含自动构建工作流：`.github/workflows/python-package.yml`
-
-当前行为：
-- `push` 自动触发
-- `pull_request` 自动触发
-- 使用 Node.js 22
+- `push`、`pull_request`、`workflow_dispatch` 触发
 - 执行 `npm ci`
 - 执行 `npm run typecheck`
 - 执行 `npm run build`
 - 执行 `npm test`
-- 上传 `dist/` 作为构建产物，其中包含 `dist/bundle-meta.json`
+- 上传 `dist/` 构建产物
 
-### 6.1 查看构建结果
-1. 打开 GitHub 仓库页面
-2. 进入 `Actions`
-3. 选择最新一次 `Node CI`
-4. 在页面底部下载 `worker-build` artifact
+当前工作流默认是“自动构建与校验”，不是“自动发布到 Cloudflare”。
 
-## 7. 如果需要 GitHub Actions 自动部署
-当前仓库默认只启用“自动构建”，不会自动发布到 Cloudflare。这样更安全，避免每次提交都直接上线。
+## 2. 部署时一定会用到的内容
 
-如果后续需要自动部署，可以新增一个单独 workflow，并在 GitHub Secrets 中配置：
-- `CLOUDFLARE_API_TOKEN`
-- `CLOUDFLARE_ACCOUNT_ID`
-- `BOT_TOKEN`
-- `HOOK_CONFIG_JSON`
+| 项目 | 用途 | 放置位置 | 格式 |
+| --- | --- | --- | --- |
+| `BOT_TOKEN` | Telegram 机器人发送消息 | Cloudflare Worker Secret / GitHub Secret | 单行字符串 |
+| `HOOK_CONFIG_JSON` | 仓库或组织与 Telegram 目标映射 | Cloudflare Worker Secret / GitHub Secret | 单行 JSON 字符串 |
+| `CLOUDFLARE_API_TOKEN` | GitHub Actions 发布 Worker | GitHub Actions Secret | 单行字符串 |
+| `CLOUDFLARE_ACCOUNT_ID` | GitHub Actions 发布 Worker | GitHub Actions Secret | 单行字符串 |
+| Worker 地址 | 回填到 GitHub Webhook `Payload URL` | GitHub Webhook 配置页 | 完整 HTTPS URL |
+| Webhook Secret | GitHub 请求签名校验 | GitHub Webhook 配置页 | 与 `HOOK_CONFIG_JSON` 中目标项的 `secret` 完全一致 |
 
-然后仅在 `main` 分支发布时触发部署。
+## 3. 最小填写模板
 
-## 8. GitHub Secrets 建议
-如果你要让 CI 也参与部署或集成测试，建议在仓库 `Settings -> Secrets and variables -> Actions` 中添加：
+### 3.1 GitHub / Cloudflare Secrets
 
-- `CLOUDFLARE_API_TOKEN`
-- `CLOUDFLARE_ACCOUNT_ID`
-- `BOT_TOKEN`
-- `HOOK_CONFIG_JSON`
+```dotenv
+BOT_TOKEN=123456:replace-with-real-bot-token
+HOOK_CONFIG_JSON={"gh_webhooks":{"your-org/your-repo":{"chat_id":-1001234567890,"secret":"replace-with-random-secret"}}}
+CLOUDFLARE_API_TOKEN=replace-with-cloudflare-api-token
+CLOUDFLARE_ACCOUNT_ID=replace-with-cloudflare-account-id
+```
 
-注意：
-- `BOT_TOKEN` 必须作为 Secret 保存
-- `HOOK_CONFIG_JSON` 如果包含私密 chat_id 或 secret，也应当作为 Secret 保存
+### 3.2 `HOOK_CONFIG_JSON`
 
-## 9. 线上排障建议
-### Cloudflare 侧
-- 用 `npx wrangler tail` 观察实时日志
-- 检查环境变量是否存在拼写错误
-- 检查 Worker 路由是否正确绑定
+```json
+{
+  "gh_webhooks": {
+    "your-org/your-repo": {
+      "chat_id": -1001234567890,
+      "secret": "replace-with-random-secret"
+    },
+    "your-org": {
+      "chat_id": "@your_channel",
+      "secret": "replace-with-another-secret"
+    }
+  }
+}
+```
 
-### GitHub 侧
-- 在 Webhook Delivery 历史中查看响应状态和响应体
-- 如果状态码是 `403`，优先看 secret 和仓库/组织映射
+### 3.3 GitHub Webhook 页面填写
 
-### Telegram 侧
-- 确认机器人已进入目标聊天
-- 确认机器人具备发送消息权限
-- 确认目标 `chat_id` 与配置一致
+```text
+Payload URL: https://<your-worker>.<your-subdomain>.workers.dev/
+Content type: application/json
+Secret: replace-with-random-secret
+Events: Send me everything
+Active: checked
+```
+
+## 4. 注意事项
+
+- `HOOK_CONFIG_JSON` 在 Worker 环境里必须是单行 JSON 字符串，不能直接粘贴带注释或多余换行的 JSON。
+- GitHub Webhook 页面的 `Secret` 必须和命中的那一项 `HOOK_CONFIG_JSON.gh_webhooks[*].secret` 完全一致。
+- 当前代码会优先按 `organization.login` 匹配，其次才是 `repository.full_name`；如果两者都配置了，组织级配置会先命中。
+- 机器人必须先加入目标群组或频道，并具备发言权限，否则部署成功后仍然不会收到通知。
+- 如果 Actions 只做构建校验，不要在文档里把它描述成“已自动发布”，避免运维认知偏差。
+
+## 5. 推荐阅读顺序
+
+1. 先看 [Cloudflare Worker 自动部署说明](deployment-worker-auto.md)，完成 Worker 与 Webhook 配置。
+2. 再看 [GitHub Actions 部署说明](deployment-actions.md)，决定是否要接入自动发布。
+
+

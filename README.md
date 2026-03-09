@@ -106,7 +106,9 @@ npm run deploy
 
 ## 详细教程
 - [使用教程](docs/usage.md)
-- [部署教程](docs/deployment.md)
+- [部署总览](docs/deployment.md)
+- [GitHub Actions 部署说明](docs/deployment-actions.md)
+- [Cloudflare Worker 自动部署说明](docs/deployment-worker-auto.md)
 - [传入参数说明](docs/input-parameters.md)
 
 ## 测试范围
@@ -121,10 +123,13 @@ npm run deploy
 - [架构说明](docs/architecture.md)
 - [传入参数说明](docs/input-parameters.md)
 - [使用教程](docs/usage.md)
-- [部署教程](docs/deployment.md)
+- [部署总览](docs/deployment.md)
+- [GitHub Actions 部署说明](docs/deployment-actions.md)
+- [Cloudflare Worker 自动部署说明](docs/deployment-worker-auto.md)
 - [迁移说明](docs/migration.md)
 - [更新记录](docs/changelog.md)
 
 ## 许可
 项目继续沿用 AGPL-3.0-or-later，详见 `LICENSE`。
+
 
