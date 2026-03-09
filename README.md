@@ -107,6 +107,7 @@ npm run deploy
 ## 详细教程
 - [使用教程](docs/usage.md)
 - [部署教程](docs/deployment.md)
+- [传入参数说明](docs/input-parameters.md)
 
 ## 测试范围
 当前测试覆盖以下关键路径：
@@ -118,6 +119,7 @@ npm run deploy
 
 ## 文档
 - [架构说明](docs/architecture.md)
+- [传入参数说明](docs/input-parameters.md)
 - [使用教程](docs/usage.md)
 - [部署教程](docs/deployment.md)
 - [迁移说明](docs/migration.md)
@@ -125,3 +127,4 @@ npm run deploy
 
 ## 许可
 项目继续沿用 AGPL-3.0-or-later，详见 `LICENSE`。
+
