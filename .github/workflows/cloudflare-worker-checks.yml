@@ -1,4 +1,4 @@
-name: Node CI
+name: Cloudflare Worker Checks
 
 on:
   push:
@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: node-ci-${{ github.ref }}
+  group: cloudflare-worker-checks-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-and-test:
+  build-test:
     runs-on: ubuntu-latest
 
     steps:

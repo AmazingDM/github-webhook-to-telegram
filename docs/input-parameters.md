@@ -1,24 +1,23 @@
-# 传入参数说明
+# Input Parameters Reference
 
-本文档汇总项目运行时会接收的所有主要输入参数，包括：
+> Simplified Chinese: [input-parameters.zh-CN.md](input-parameters.zh-CN.md)
 
-- Wrangler / Cloudflare Workers 注入的环境变量
-- GitHub Webhook HTTP 请求头
-- GitHub Webhook JSON 请求体字段
+This document lists the primary inputs consumed by the Worker implementation, including:
+- runtime environment variables injected by Wrangler / Cloudflare Workers
+- GitHub webhook HTTP headers
+- GitHub webhook JSON payload fields
 
-文档内容以当前实现为准，源码入口见 `src/index.ts`。
+The reference reflects the current implementation and runtime entrypoint in `src/index.ts`.
 
-## 1. 运行环境变量
+## 1. Runtime Environment Variables
+The Worker reads the following runtime variables:
 
-Worker 启动后，会从运行时环境读取以下变量：
-
-| 变量名 | 类型 | 必填 | 说明 |
+| Variable | Type | Required | Description |
 | --- | --- | --- | --- |
-| `BOT_TOKEN` | `string` | 是 | Telegram Bot Token，用于调用 Telegram Bot API。缺失时启动请求处理会直接报错。 |
-| `HOOK_CONFIG_JSON` | `string` | 是 | GitHub Webhook 路由配置，必须是合法 JSON 字符串。缺失或结构非法时会直接报错。 |
+| `BOT_TOKEN` | `string` | yes | Telegram bot token used to call the Telegram Bot API. Missing values cause request handling to fail fast. |
+| `HOOK_CONFIG_JSON` | `string` | yes | GitHub webhook routing configuration. Must be a valid JSON string. Missing or invalid values cause request handling to fail fast. |
 
-### 1.1 `HOOK_CONFIG_JSON` 结构
-
+### 1.1 `HOOK_CONFIG_JSON` structure
 ```json
 {
   "gh_webhooks": {
@@ -34,159 +33,135 @@ Worker 启动后，会从运行时环境读取以下变量：
 }
 ```
 
-### 1.2 `gh_webhooks` 子字段
-
-| 字段 | 类型 | 必填 | 说明 |
+### 1.2 `gh_webhooks` fields
+| Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `gh_webhooks` | `Record<string, HookTarget>` | 是 | 仓库或组织到 Telegram 目标的映射表。 |
-| `gh_webhooks.<key>` | `object` | 是 | 单个路由配置。`key` 可以是 `仓库全名`，也可以是 `组织名`。 |
-| `gh_webhooks.<key>.chat_id` | `string \| number` | 是 | Telegram 目标聊天 ID，支持数值 ID 或 `@channel_name`。 |
-| `gh_webhooks.<key>.secret` | `string` | 是 | GitHub Webhook Secret，用于校验 `X-Hub-Signature-256`。 |
+| `gh_webhooks` | `Record<string, HookTarget>` | yes | mapping from repositories or organizations to Telegram targets |
+| `gh_webhooks.<key>` | `object` | yes | a single route definition; `key` may be a repository full name or an organization name |
+| `gh_webhooks.<key>.chat_id` | `string \| number` | yes | Telegram target chat ID, either a numeric ID or a public `@channel_name` |
+| `gh_webhooks.<key>.secret` | `string` | yes | GitHub webhook secret used to validate `X-Hub-Signature-256` |
 
-### 1.3 路由匹配规则
-
-项目会按以下顺序匹配 `HOOK_CONFIG_JSON` 中的目标：
-
+### 1.3 Route matching order
+The project matches `HOOK_CONFIG_JSON` targets in this order:
 1. `payload.organization.login`
 2. `payload.repository.full_name`
 
-也就是说，如果组织名和仓库全名都存在，并且都在配置中命中，当前实现会优先使用组织级配置。
+If both organization and repository keys exist and both match, the organization-level route wins.
 
-## 2. Webhook 请求入口
-
-| 项目 | 固定值 / 要求 | 说明 |
+## 2. Webhook Request Entry Conditions
+| Item | Fixed value / rule | Description |
 | --- | --- | --- |
-| 请求路径 | `POST /` | 只有根路径且方法为 `POST` 才会继续处理。 |
-| 非根路径 | 返回 `404` | 例如 `POST /foo` 不会进入业务逻辑。 |
-| 非 `POST` | 返回 `405` | 例如 `GET /` 会被拒绝。 |
+| Request path | `POST /` | Only the root path with method `POST` enters business logic. |
+| Non-root paths | `404` | For example, `POST /foo` is rejected. |
+| Non-`POST` methods | `405` | For example, `GET /` is rejected. |
 
-## 3. GitHub Webhook 请求头
+## 3. GitHub Webhook Headers
+The following headers are explicitly read or validated:
 
-以下请求头会被显式读取或校验：
-
-| 请求头 | 必填 | 规则 | 说明 |
+| Header | Required | Rule | Description |
 | --- | --- | --- | --- |
-| `User-Agent` | 是 | 必须以 `GitHub-Hookshot` 开头 | 用于初步识别请求是否来自 GitHub。 |
-| `Content-Type` | 是 | 必须以 `application/json` 开头 | 当前实现只接受 JSON 负载。 |
-| `X-Hub-Signature-256` | 是 | 格式应为 `sha256=<hex>` | 用于 HMAC SHA-256 签名校验。 |
-| `X-GitHub-Event` | 否，但建议始终提供 | 任意字符串 | 用于决定使用哪个事件格式化器。未支持事件不会报错，但不会发送 Telegram 消息。 |
+| `User-Agent` | yes | must start with `GitHub-Hookshot` | quick validation that the request looks like GitHub |
+| `Content-Type` | yes | must start with `application/json` | only JSON payloads are accepted |
+| `X-Hub-Signature-256` | yes | must be formatted as `sha256=<hex>` | used for HMAC SHA-256 verification |
+| `X-GitHub-Event` | optional but strongly recommended | any string | selects the formatter for the incoming event; unsupported events are ignored rather than treated as failures |
 
 ### 3.1 `X-Hub-Signature-256`
+Signature handling follows the GitHub convention:
+- the raw request body text is part of the HMAC SHA-256 calculation
+- the signing key comes from the matched `gh_webhooks.<key>.secret`
+- the implementation compares the hexadecimal digest after the `sha256=` prefix
 
-签名规则与 GitHub 官方一致：
+If the signature is missing, malformed, or invalid, the service returns `403 Forbidden`.
 
-- 原始请求体文本会参与 HMAC SHA-256 计算
-- 密钥来自匹配到的 `gh_webhooks.<key>.secret`
-- 项目会取 `sha256=` 后面的十六进制摘要参与比较
+## 4. GitHub Webhook JSON Payload
+The request body must be valid JSON. The project does not depend on the entire GitHub payload schema; it only reads the minimum fields required by the current implementation.
 
-如果签名缺失、格式错误或校验失败，服务会返回 `403 Forbidden`。
-
-## 4. GitHub Webhook JSON 请求体
-
-请求体必须是合法 JSON。项目不会完整依赖 GitHub 的全部字段，而是只读取当前实现需要的最小字段集合。
-
-## 5. 通用字段
-
-以下字段会在多个事件中复用：
-
-| 字段路径 | 类型 | 必填情况 | 说明 |
+## 5. Common Payload Fields
+| Field path | Type | Required when | Description |
 | --- | --- | --- | --- |
-| `action` | `string` | 条件必填 | 某些 GitHub 事件会带上动作，例如 `opened`、`created`、`deleted`。 |
-| `sender.login` | `string` | 实际上应视为必填 | 用于消息标题中的操作者显示。 |
-| `repository.full_name` | `string` | 条件必填 | 用于仓库路由匹配和消息标题显示，例如 `owner/repo`。 |
-| `repository.html_url` | `string` | 条件必填 | 某些事件会拼接为仓库链接。 |
-| `repository.stargazers_count` | `number` | 条件必填 | `star`、`fork` 等事件会读取。 |
-| `repository.forks_count` | `number` | 条件必填 | `star`、`fork` 等事件会读取。 |
-| `organization.login` | `string` | 可选 | 用于组织级路由匹配，也可作为消息标题回退名称。 |
-| `number` | `number` | 条件必填 | `issues`、`pull_request`、`discussion` 等编号型事件会读取。 |
-| `ref` | `string` | 条件必填 | `create`、`delete`、`push` 事件会读取。 |
-| `ref_type` | `string` | 条件必填 | `create`、`delete` 事件会读取，例如 `branch`、`tag`。 |
+| `action` | `string` | conditionally required | present on action-style events such as `opened`, `created`, or `deleted` |
+| `sender.login` | `string` | effectively required | displayed as the actor in notification headers |
+| `repository.full_name` | `string` | conditionally required | used for route matching and repository display |
+| `repository.html_url` | `string` | conditionally required | used to build repository links |
+| `repository.stargazers_count` | `number` | conditionally required | used by `star` and `fork` messages |
+| `repository.forks_count` | `number` | conditionally required | used by `star` and `fork` messages |
+| `organization.login` | `string` | optional | used for organization-level route matching and fallback display |
+| `number` | `number` | conditionally required | used by `issues`, `pull_request`, and `discussion` notifications |
+| `ref` | `string` | conditionally required | used by `create`, `delete`, and `push` |
+| `ref_type` | `string` | conditionally required | used by `create` and `delete`, for example `branch` or `tag` |
 
-## 6. 事件专属字段
-
+## 6. Event-Specific Fields
 ### 6.1 `create`
-
-| 字段路径 | 类型 | 说明 |
+| Field path | Type | Description |
 | --- | --- | --- |
-| `ref_type` | `string` | 被创建的引用类型。 |
-| `ref` | `string` | 被创建的分支名或标签名。 |
-| `repository.html_url` | `string` | 用于拼接目标链接。 |
+| `ref_type` | `string` | type of reference created |
+| `ref` | `string` | branch or tag name |
+| `repository.html_url` | `string` | used to build the reference link |
 
 ### 6.2 `delete`
-
-| 字段路径 | 类型 | 说明 |
+| Field path | Type | Description |
 | --- | --- | --- |
-| `ref_type` | `string` | 被删除的引用类型。 |
-| `ref` | `string` | 被删除的分支名或标签名。 |
+| `ref_type` | `string` | type of reference deleted |
+| `ref` | `string` | branch or tag name |
 
 ### 6.3 `discussion`
-
-| 字段路径 | 类型 | 说明 |
+| Field path | Type | Description |
 | --- | --- | --- |
-| `discussion.html_url` | `string` | Discussion 页面链接。 |
-| `discussion.title` | `string` | Discussion 标题。 |
-| `discussion.number` | `number` | Discussion 编号。 |
+| `discussion.html_url` | `string` | discussion page URL |
+| `discussion.title` | `string` | discussion title |
+| `discussion.number` | `number` | discussion number |
 
 ### 6.4 `fork`
-
-| 字段路径 | 类型 | 说明 |
+| Field path | Type | Description |
 | --- | --- | --- |
-| `forkee.html_url` | `string` | 新 Fork 仓库链接。 |
-| `forkee.full_name` | `string` | 新 Fork 仓库全名。 |
-| `repository.stargazers_count` | `number` | 原仓库星标数。 |
-| `repository.forks_count` | `number` | 原仓库 Fork 数。 |
+| `forkee.html_url` | `string` | new fork URL |
+| `forkee.full_name` | `string` | new fork full name |
+| `repository.stargazers_count` | `number` | source repository star count |
+| `repository.forks_count` | `number` | source repository fork count |
 
 ### 6.5 `issues`
-
-| 字段路径 | 类型 | 说明 |
+| Field path | Type | Description |
 | --- | --- | --- |
-| `issue.html_url` | `string` | Issue 页面链接。 |
-| `issue.title` | `string` | Issue 标题。 |
-| `issue.number` | `number` | Issue 编号。 |
+| `issue.html_url` | `string` | issue URL |
+| `issue.title` | `string` | issue title |
+| `issue.number` | `number` | issue number |
 
 ### 6.6 `ping`
-
-`ping` 事件只依赖通用标题字段，不读取额外详情字段。当前实现会生成标题，但不追加详情内容。
+`ping` only depends on the common header fields and emits a reachability confirmation message.
 
 ### 6.7 `public`
-
-| 字段路径 | 类型 | 说明 |
+| Field path | Type | Description |
 | --- | --- | --- |
-| `repository.html_url` | `string` | 仓库链接。 |
-| `repository.full_name` | `string` | 仓库全名。 |
+| `repository.html_url` | `string` | repository URL |
+| `repository.full_name` | `string` | repository full name |
 
 ### 6.8 `pull_request`
-
-| 字段路径 | 类型 | 说明 |
+| Field path | Type | Description |
 | --- | --- | --- |
-| `pull_request.html_url` | `string` | Pull Request 链接。 |
-| `pull_request.title` | `string` | Pull Request 标题。 |
-| `pull_request.user.login` | `string` | Pull Request 作者。 |
-| `number` | `number` | Pull Request 编号。 |
+| `pull_request.html_url` | `string` | pull request URL |
+| `pull_request.title` | `string` | pull request title |
+| `pull_request.user.login` | `string` | pull request author |
+| `number` | `number` | pull request number |
 
 ### 6.9 `push`
-
-| 字段路径 | 类型 | 说明 |
+| Field path | Type | Description |
 | --- | --- | --- |
-| `ref` | `string` | 被推送的 Git 引用。 |
-| `commits` | `Array<object>` | 提交列表。 |
-| `commits[].id` | `string` | Commit SHA，消息里只截取前 7 位。 |
-| `commits[].message` | `string` | Commit 信息。 |
-| `commits[].url` | `string` | Commit 链接。 |
-| `commits[].author.username` | `string` | 作者 GitHub 用户名，优先使用。 |
-| `commits[].author.name` | `string` | 作者显示名，当 `username` 缺失时回退使用。 |
+| `ref` | `string` | pushed Git reference |
+| `commits` | `Array<object>` | commit list |
+| `commits[].id` | `string` | commit SHA, shortened to 7 characters in messages |
+| `commits[].message` | `string` | commit message |
+| `commits[].url` | `string` | commit URL |
+| `commits[].author.username` | `string` | preferred author username |
+| `commits[].author.name` | `string` | fallback author name |
 
 ### 6.10 `star`
-
-| 字段路径 | 类型 | 说明 |
+| Field path | Type | Description |
 | --- | --- | --- |
-| `repository.stargazers_count` | `number` | 当前星标数。 |
-| `repository.forks_count` | `number` | 当前 Fork 数。 |
+| `repository.stargazers_count` | `number` | current star count |
+| `repository.forks_count` | `number` | current fork count |
 
-## 7. 当前支持的事件类型
-
-当前实现支持以下 `X-GitHub-Event` 值：
-
+## 7. Supported Event Types
+The current implementation supports these `X-GitHub-Event` values:
 - `create`
 - `delete`
 - `discussion`
@@ -198,27 +173,23 @@ Worker 启动后，会从运行时环境读取以下变量：
 - `push`
 - `star`
 
-如果事件类型不在这个列表中：
+If an event type is not in this list:
+- request validation may still succeed
+- no Telegram message will be sent
+- the response will be `Send to Telegram: nothing to send`
 
-- 请求仍可能通过签名校验
-- 但不会发送 Telegram 消息
-- 返回内容会是 `Send to Telegram: nothing to send`
-
-## 8. 参数来源与代码位置
-
-| 参数类别 | 主要代码位置 |
+## 8. Source Locations
+| Parameter category | Primary code location |
 | --- | --- |
-| 环境变量解析 | `src/config.ts` |
-| 请求路径与方法校验 | `src/index.ts` |
-| 请求头与签名校验 | `src/github.ts` |
-| 请求体字段定义 | `src/types.ts` |
-| 事件字段使用方式 | `src/formatters.ts` |
+| runtime variable parsing | `src/config.ts` |
+| request path and method checks | `src/index.ts` |
+| header and signature validation | `src/github.ts` |
+| payload type definitions | `src/types.ts` |
+| event-specific rendering | `src/formatters/` |
 
-## 9. 维护建议
-
-后续如果新增事件类型或新增环境变量，建议同步更新以下位置：
-
+## 9. Maintenance Notes
+When you add new event types or runtime variables, update the following together:
 1. `src/types.ts`
-2. `src/formatters.ts`
+2. `src/formatters/`
 3. `docs/input-parameters.md`
 4. `README.md`

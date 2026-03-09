@@ -1,28 +1,33 @@
-# Python 版本到 Workers 版本迁移说明
+# Migration Guide: Python to Workers
 
-## 迁移目标
-旧版本基于 Python `aiohttp`，部署目标偏向 Heroku。新版本改为 Cloudflare Workers，以便获得更轻量的 Serverless 部署体验。
+> Simplified Chinese: [migration.zh-CN.md](migration.zh-CN.md)
 
-## 主要映射关系
+## Migration Goal
+The legacy version was based on Python `aiohttp` and deployed in a Heroku-oriented model. The new version targets Cloudflare Workers for a lighter serverless deployment experience.
+
+## Key Mapping
 - `main.py` -> `src/index.ts`
-  负责 HTTP 入口和请求分发。
+  Handles HTTP entrypoint logic and request dispatching.
 - `config.py` -> `src/config.ts`
-  负责从环境变量解析配置，而不是读取本地文件。
-- `utils/github_webhook.py` -> `src/github.ts` + `src/formatters.ts`
-  分离“校验逻辑”和“格式化逻辑”，提升可测试性。
+  Parses configuration from runtime environment variables instead of local files.
+- `utils/github_webhook.py` -> `src/github.ts` + `src/formatters/`
+  Separates validation logic from message rendering for better testability.
 - `utils/telegram.py` -> `src/telegram.ts`
-  改为使用 Worker 原生 `fetch` 调用 Telegram API。
+  Uses the Worker-native `fetch` API to call Telegram.
 
-## 配置变化
-- 旧版使用本地 `config.json` 或 Heroku 环境变量 `HOOK_CONFIG`。
-- 新版统一使用：
-  - `BOT_TOKEN`
-  - `HOOK_CONFIG_JSON`
+## Configuration Changes
+The legacy version used local `config.json` or the Heroku `HOOK_CONFIG` environment variable.
 
-## 部署变化
-- 旧版依赖 `Procfile`、`runtime.txt`、`requirements.txt`。
-- 新版依赖 `wrangler.toml` 和 Node.js 工具链。
+The Workers version standardizes on:
+- `BOT_TOKEN`
+- `HOOK_CONFIG_JSON`
 
-## 测试变化
-- 旧版只有 GitHub Actions 中的 Python lint。
-- 新版增加了 Vitest 单元测试，覆盖配置解析、签名校验、消息格式化、Telegram 调用和 Worker 入口。
+## Deployment Changes
+The legacy version depended on `Procfile`, `runtime.txt`, and `requirements.txt`.
+
+The Workers version depends on `wrangler.toml` and the Node.js toolchain.
+
+## Testing Changes
+The legacy version only ran Python linting in GitHub Actions.
+
+The Workers version adds Vitest-based unit tests covering configuration parsing, signature validation, notification rendering, Telegram delivery, and the Worker entrypoint.

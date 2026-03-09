@@ -1,46 +1,51 @@
-# GitHub Webhook 转发到 Telegram
+# GitHub Webhook to Telegram
 
-这个项目运行在 Cloudflare Workers 上，用于接收 GitHub Webhook，并将事件消息转发到 Telegram 聊天。
+> Simplified Chinese: [README.zh-CN.md](README.zh-CN.md)
 
-当前版本已经从 Python `aiohttp` 服务重写为 TypeScript Worker，目标是保留原有功能语义，同时补齐更适合 Serverless 的构建、测试和部署流程。
+A Cloudflare Workers service that receives GitHub webhooks and forwards supported events to Telegram chats.
 
-## 功能概览
-- 接收 GitHub `POST /` Webhook 请求
-- 校验 `X-Hub-Signature-256` 签名
-- 按仓库或组织映射转发目标 Telegram 聊天
-- 将支持的 GitHub 事件格式化为 Telegram HTML 消息
-- 通过 Telegram Bot API `sendMessage` 发送通知
+The current codebase is a TypeScript/Workers rewrite of the original Python `aiohttp` implementation. The goal is to preserve the original behavior while providing a cleaner serverless deployment model, test coverage, and open-source project documentation.
 
-## 目录说明
-- `src/`：Worker 源码
-- `test/`：Vitest 测试
-- `docs/`：架构、迁移和更新记录
-- `config_sample.json`：`HOOK_CONFIG_JSON` 的示例内容
-- `.dev.vars.example`：本地开发环境变量示例
+## Features
+- Accept GitHub webhook requests on `POST /`
+- Verify `X-Hub-Signature-256` signatures before processing payloads
+- Route notifications by repository full name or organization name
+- Render supported GitHub events as structured Telegram HTML messages
+- Deliver messages through the Telegram Bot API
 
-## 环境要求
+## Project Layout
+- `src/`: Worker source code
+- `src/formatters/`: event-specific notification templates and shared formatting helpers
+- `test/`: Vitest test suite
+- `docs/`: architecture, usage, deployment, migration, and reference docs
+- `config_sample.json`: sample `HOOK_CONFIG_JSON` payload
+- `.dev.vars.example`: local development environment example
+
+## Requirements
 - Node.js 20+
 - npm 10+
-- Cloudflare 账号与 Wrangler CLI
+- A Cloudflare account with Wrangler access
+- A Telegram bot token
 
-## 快速开始
-1. 安装依赖：`npm install`
-2. 准备本地变量：复制 `.dev.vars.example` 为 `.dev.vars`
-3. 填入真实的 `BOT_TOKEN` 与 `HOOK_CONFIG_JSON`
-4. 本地启动：`npm run dev`
-5. 运行测试：`npm test`
-6. 构建检查：`npm run build`
-7. 发布到 Cloudflare：`npm run deploy`
+## Quick Start
+1. Install dependencies: `npm install`
+2. Copy `.dev.vars.example` to `.dev.vars`
+3. Fill in `BOT_TOKEN` and `HOOK_CONFIG_JSON`
+4. Start local development: `npm run dev`
+5. Run tests: `npm test`
+6. Run type checking: `npm run typecheck`
+7. Validate the bundle: `npm run build`
+8. Deploy to Cloudflare Workers: `npm run deploy`
 
-## 配置说明
-Worker 运行时使用以下环境变量：
+## Runtime Configuration
+The Worker reads two required runtime variables:
 
 - `BOT_TOKEN`
-  Telegram 机器人 Token，可通过 [BotFather](https://t.me/BotFather) 创建。
+  Telegram bot token created with [BotFather](https://t.me/BotFather).
 - `HOOK_CONFIG_JSON`
-  单个 JSON 字符串，结构与 `config_sample.json` 一致。
+  A single JSON string that maps repositories or organizations to Telegram targets.
 
-示例：
+Example:
 
 ```json
 {
@@ -57,79 +62,47 @@ Worker 运行时使用以下环境变量：
 }
 ```
 
-本地开发时可复制 `.dev.vars.example` 为 `.dev.vars` 并填入真实值。
-
-## 开发与打包
-安装依赖：
-
+## Development Commands
 ```bash
 npm install
-```
-
-本地开发：
-
-```bash
 npm run dev
-```
-
-类型检查：
-
-```bash
 npm run typecheck
-```
-
-打包验证：
-
-```bash
 npm run build
-```
-
-运行测试：
-
-```bash
 npm test
-```
-
-持续监听测试：
-
-```bash
 npm run test:watch
-```
-
-部署到 Cloudflare Workers：
-
-```bash
 npm run deploy
 ```
 
-`npm run build` 会在 `dist/` 下生成 Worker 打包产物，并输出 `dist/bundle-meta.json`，方便 GitHub Actions 归档自动构建结果。
+`npm run build` performs type checking and a dry-run Worker bundle build. The bundled output is written to `dist/`, including `dist/bundle-meta.json` for CI artifact inspection.
 
-## 详细教程
-- [使用教程](docs/usage.md)
-- [部署总览](docs/deployment.md)
-- [GitHub Actions 部署说明](docs/deployment-actions.md)
-- [Cloudflare Worker 自动部署说明](docs/deployment-worker-auto.md)
-- [传入参数说明](docs/input-parameters.md)
+## Documentation
+English documentation:
+- [Usage Guide](docs/usage.md)
+- [Deployment Overview](docs/deployment.md)
+- [GitHub Actions Deployment Guide](docs/deployment-actions.md)
+- [Cloudflare Worker Deployment Guide](docs/deployment-worker-auto.md)
+- [Input Parameters Reference](docs/input-parameters.md)
+- [Architecture Overview](docs/architecture.md)
+- [Migration Guide](docs/migration.md)
+- [Changelog](docs/changelog.md)
 
-## 测试范围
-当前测试覆盖以下关键路径：
-- 配置 JSON 解析与目标映射
-- GitHub 请求头和签名校验
-- GitHub 事件消息格式化
-- Telegram API 成功/失败处理
-- Worker 入口对 404/405/403/成功请求的响应
+Chinese documentation:
+- [使用教程](docs/usage.zh-CN.md)
+- [部署总览](docs/deployment.zh-CN.md)
+- [GitHub Actions 部署说明](docs/deployment-actions.zh-CN.md)
+- [Cloudflare Worker 自动部署说明](docs/deployment-worker-auto.zh-CN.md)
+- [传入参数说明](docs/input-parameters.zh-CN.md)
+- [架构说明](docs/architecture.zh-CN.md)
+- [迁移说明](docs/migration.zh-CN.md)
+- [更新记录](docs/changelog.zh-CN.md)
 
-## 文档
-- [架构说明](docs/architecture.md)
-- [传入参数说明](docs/input-parameters.md)
-- [使用教程](docs/usage.md)
-- [部署总览](docs/deployment.md)
-- [GitHub Actions 部署说明](docs/deployment-actions.md)
-- [Cloudflare Worker 自动部署说明](docs/deployment-worker-auto.md)
-- [迁移说明](docs/migration.md)
-- [更新记录](docs/changelog.md)
+## Testing Coverage
+The test suite currently covers:
+- environment configuration parsing and route matching
+- GitHub header validation and signature checks
+- notification formatting behavior
+- Telegram API success and failure handling
+- Worker responses for `404`, `405`, `403`, and successful webhook requests
 
-## 许可
-项目继续沿用 AGPL-3.0-or-later，详见 `LICENSE`。
-
-
+## License
+This project remains licensed under AGPL-3.0-or-later. See [LICENSE](LICENSE) for details.

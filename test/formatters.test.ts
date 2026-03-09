@@ -1,16 +1,32 @@
 import { describe, expect, it } from "vitest";
-import { escapeHtml, formatGitHubWebhook, getSupportedEvents } from "../src/formatters";
+import { escapeHtml, formatGitHubWebhook, formatRef, getSupportedEvents } from "../src/formatters";
 
-describe("formatters", () => {
-  it("返回当前支持的事件列表", () => {
-    expect(getSupportedEvents()).toContain("push");
+describe("formatters entrypoint", () => {
+  it("returns the current supported event list", () => {
+    expect(getSupportedEvents()).toEqual([
+      "create",
+      "delete",
+      "discussion",
+      "fork",
+      "issues",
+      "ping",
+      "public",
+      "pull_request",
+      "push",
+      "star",
+    ]);
   });
 
-  it("会对 HTML 特殊字符做转义", () => {
+  it("escapes reserved HTML characters", () => {
     expect(escapeHtml("<tag> & \"quote\"")).toBe("&lt;tag&gt; &amp; &quot;quote&quot;");
   });
 
-  it("格式化 push 事件时输出更醒目的结构化消息", () => {
+  it("normalizes git refs for display", () => {
+    expect(formatRef("refs/heads/main")).toBe("main");
+    expect(formatRef("refs/tags/v1.0.0")).toBe("v1.0.0");
+  });
+
+  it("formats push events as structured English messages", () => {
     const text = formatGitHubWebhook("push", {
       sender: { login: "dash" },
       ref: "refs/heads/main",
@@ -30,14 +46,14 @@ describe("formatters", () => {
       ],
     });
 
-    expect(text).toContain("🚀 <b>Push 推送</b>");
-    expect(text).toContain("<b>分支</b> · <code>main</code>");
+    expect(text).toContain("🚀 <b>Push Update</b>");
+    expect(text).toContain("<b>Branch</b> · <code>main</code>");
     expect(text).toContain("Fix &lt;bug&gt;");
-    expect(text).toContain("<b>提交</b> · 1 条");
-    expect(text).toContain("abcdef1");
+    expect(text).toContain("<b>Commits</b> · 1");
+    expect(text).toContain("Author: <code>dash</code>");
   });
 
-  it("格式化 pull request 事件时带上 emoji 和标题链接", () => {
+  it("formats pull request events with title links", () => {
     const text = formatGitHubWebhook("pull_request", {
       sender: { login: "dash" },
       action: "opened",
@@ -55,13 +71,13 @@ describe("formatters", () => {
       },
     });
 
-    expect(text).toContain("🔀 <b>Pull Request 更新</b>");
-    expect(text).toContain("<b>动作</b> · <code>opened</code>");
+    expect(text).toContain("🔀 <b>Pull Request Activity</b>");
+    expect(text).toContain("<b>Action</b> · <code>opened</code>");
     expect(text).toContain('href="https://github.com/Codertocat/Hello-World/pull/7"');
     expect(text).toContain("Add feature");
   });
 
-  it("不支持的事件返回空", () => {
+  it("returns null for unsupported events", () => {
     const text = formatGitHubWebhook("unknown", {
       sender: { login: "dash" },
     });
