@@ -54,11 +54,11 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Deploy Worker
+        run: npm run deploy
+
       - name: Sync Worker secrets
         shell: bash
         run: |
           printf '%s' "$BOT_TOKEN" | npx wrangler secret put BOT_TOKEN
           printf '%s' "$HOOK_CONFIG_JSON" | npx wrangler secret put HOOK_CONFIG_JSON
-
-      - name: Deploy Worker
-        run: npm run deploy

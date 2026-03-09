@@ -63,7 +63,7 @@ HOOK_CONFIG_JSON={"gh_webhooks":{"your-org/your-repo":{"chat_id":-1001234567890,
 `HOOK_CONFIG_JSON` 必须以单行 JSON 形式保存，不能带注释，也不要包 Markdown 标记。
 
 ## GitHub Actions Secret 同步
-自动发布 workflow 会在上线前把以下值同步到 Worker：
+自动发布 workflow 会在代码部署成功后，把以下值同步到 Worker：
 - `BOT_TOKEN`
 - `HOOK_CONFIG_JSON`
 

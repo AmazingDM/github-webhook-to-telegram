@@ -26,8 +26,8 @@ checks workflow 是仓库的 CI 路径，负责：
 deploy workflow 是发布路径。它会：
 - 在 `main` 分支 push 和手动触发时运行
 - 在部署前重新执行类型检查、构建和测试
-- 通过 `wrangler secret put` 把 `BOT_TOKEN` 和 `HOOK_CONFIG_JSON` 同步到 Cloudflare
 - 通过 `npm run deploy` 发布 Worker
+- 在代码部署成功后，通过 `wrangler secret put` 把 `BOT_TOKEN` 和 `HOOK_CONFIG_JSON` 同步到 Cloudflare
 
 ## 必需的 GitHub Secrets
 进入 `Settings -> Secrets and variables -> Actions`，配置：
