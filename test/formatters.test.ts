@@ -8,12 +8,14 @@ describe("formatters entrypoint", () => {
       "delete",
       "discussion",
       "fork",
+      "issue_comment",
       "issues",
       "ping",
       "public",
       "pull_request",
       "push",
       "star",
+      "workflow_run",
     ]);
   });
 
@@ -26,10 +28,11 @@ describe("formatters entrypoint", () => {
     expect(formatRef("refs/tags/v1.0.0")).toBe("v1.0.0");
   });
 
-  it("formats push events as structured English messages", () => {
+  it("formats push events as HTML cards", () => {
     const text = formatGitHubWebhook("push", {
       sender: { login: "dash" },
       ref: "refs/heads/main",
+      compare: "https://github.com/Codertocat/Hello-World/compare/old...new",
       repository: {
         full_name: "Codertocat/Hello-World",
         html_url: "https://github.com/Codertocat/Hello-World",
@@ -39,21 +42,22 @@ describe("formatters entrypoint", () => {
       commits: [
         {
           id: "abcdef123456",
-          message: "Fix <bug>",
+          message: "Fix <bug>\n\nMore details",
           url: "https://github.com/Codertocat/Hello-World/commit/abcdef1",
           author: { username: "dash" },
         },
       ],
     });
 
-    expect(text).toContain("🚀 <b>Push Update</b>");
-    expect(text).toContain("<b>Branch</b> · <code>main</code>");
+    expect(text).toContain('🚀 <a href="https://github.com/Codertocat/Hello-World/compare/old...new"><b>New Push</b></a>');
+    expect(text).toContain("<blockquote>");
+    expect(text).toContain("📦 <code>Codertocat/Hello-World</code> · 🌿 <code>main</code>");
+    expect(text).toContain("👤 <code>dash</code>");
+    expect(text).toContain("📝 <b>Commits (1)</b>");
     expect(text).toContain("Fix &lt;bug&gt;");
-    expect(text).toContain("<b>Commits</b> · 1");
-    expect(text).toContain("Author: <code>dash</code>");
   });
 
-  it("formats pull request events with title links", () => {
+  it("formats pull request events with the new card layout", () => {
     const text = formatGitHubWebhook("pull_request", {
       sender: { login: "dash" },
       action: "opened",
@@ -61,20 +65,27 @@ describe("formatters entrypoint", () => {
       repository: {
         full_name: "Codertocat/Hello-World",
         html_url: "https://github.com/Codertocat/Hello-World",
-        stargazers_count: 1,
-        forks_count: 2,
       },
       pull_request: {
         html_url: "https://github.com/Codertocat/Hello-World/pull/7",
         title: "Add feature",
         user: { login: "dash" },
+        head: { ref: "feature" },
+        base: { ref: "main" },
+        labels: [{ name: "feature" }],
+        additions: 10,
+        deletions: 2,
+        changed_files: 3,
+        body: "Adds a new endpoint",
       },
     });
 
-    expect(text).toContain("🔀 <b>Pull Request Activity</b>");
-    expect(text).toContain("<b>Action</b> · <code>opened</code>");
-    expect(text).toContain('href="https://github.com/Codertocat/Hello-World/pull/7"');
-    expect(text).toContain("Add feature");
+    expect(text).toContain('🟢 <a href="https://github.com/Codertocat/Hello-World/pull/7"><b>Pull Request Opened #7</b></a>');
+    expect(text).toContain("📋 Add feature");
+    expect(text).toContain("🌿 <code>feature</code> → <code>main</code>");
+    expect(text).toContain("🏷️ <code>feature</code>");
+    expect(text).toContain("📊 <code>+10 -2</code> (3 files)");
+    expect(text).toContain("💭 <i>Adds a new endpoint</i>");
   });
 
   it("returns null for unsupported events", () => {

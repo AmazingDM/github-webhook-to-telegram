@@ -1,14 +1,15 @@
 import type { GitHubPayload } from "../types";
-import { formatLinkField, formatMissing, formatRepoStats } from "./shared";
+import { buildTitle, card, esc, formatRepoActor, formatRepoStats } from "./shared";
 
 export function formatFork(payload: GitHubPayload): string {
   const forkee = payload.forkee;
-  if (!forkee || !payload.repository) {
-    return formatMissing("Missing fork data");
+  if (!forkee) {
+    return card(buildTitle("🍴", "Repository Forked"), [formatRepoActor(payload)]);
   }
 
-  return [
-    formatLinkField("New repo", forkee.html_url, forkee.full_name),
+  return card(buildTitle("🍴", "Repository Forked", forkee.html_url), [
+    formatRepoActor(payload),
+    `🆕 <code>${esc(forkee.full_name)}</code>`,
     formatRepoStats(payload.repository),
-  ].join("\n");
+  ]);
 }

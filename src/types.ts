@@ -29,14 +29,17 @@ export interface GitHubPayload {
   number?: number;
   ref?: string;
   ref_type?: string;
+  forced?: boolean;
+  compare?: string;
+  after?: string;
   sender: {
     login: string;
   };
   repository?: {
     full_name: string;
-    html_url: string;
-    stargazers_count: number;
-    forks_count: number;
+    html_url?: string;
+    stargazers_count?: number;
+    forks_count?: number;
   };
   organization?: {
     login: string;
@@ -50,6 +53,10 @@ export interface GitHubPayload {
       name?: string;
     };
   }>;
+  head_commit?: {
+    id?: string;
+    message?: string;
+  };
   discussion?: {
     html_url: string;
     title: string;
@@ -63,6 +70,16 @@ export interface GitHubPayload {
     html_url: string;
     title: string;
     number: number;
+    labels?: Array<{
+      name: string;
+    }>;
+    assignees?: Array<{
+      login: string;
+    }>;
+    milestone?: {
+      title: string;
+    } | null;
+    body?: string;
   };
   pull_request?: {
     html_url: string;
@@ -70,6 +87,51 @@ export interface GitHubPayload {
     user: {
       login: string;
     };
+    number?: number;
+    merged?: boolean;
+    labels?: Array<{
+      name: string;
+    }>;
+    additions?: number;
+    deletions?: number;
+    changed_files?: number;
+    requested_reviewers?: Array<{
+      login: string;
+    }>;
+    merged_by?: {
+      login: string;
+    } | null;
+    milestone?: {
+      title: string;
+    } | null;
+    body?: string;
+    head?: {
+      ref: string;
+    };
+    base?: {
+      ref: string;
+    };
+  };
+  comment?: {
+    html_url: string;
+    body?: string;
+    user: {
+      login: string;
+    };
+  };
+  workflow_run?: {
+    conclusion?: string | null;
+    html_url: string;
+    name: string;
+    head_branch?: string;
+    head_commit?: {
+      message?: string | null;
+    } | null;
+    head_sha?: string;
+    run_attempt?: number;
+  };
+  label?: {
+    name: string;
   };
 }
 

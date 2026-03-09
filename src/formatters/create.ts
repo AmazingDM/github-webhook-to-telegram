@@ -1,14 +1,12 @@
 import type { GitHubPayload } from "../types";
-import { escapeHtml, formatField, formatLinkField } from "./shared";
+import { buildTitle, card, esc, formatRepoActor } from "./shared";
 
 export function formatCreate(payload: GitHubPayload): string {
-  return [
-    formatField("Type", escapeHtml(payload.ref_type ?? "ref")),
-    formatField("Name", `<code>${escapeHtml(payload.ref ?? "")}</code>`),
-    formatLinkField(
-      "Link",
-      payload.repository?.html_url ? `${payload.repository.html_url}/tree/${payload.ref ?? ""}` : undefined,
-      payload.ref ?? "View reference",
-    ),
-  ].join("\n");
+  const ref = payload.ref ?? "";
+  const href = payload.repository?.html_url && ref ? `${payload.repository.html_url}/tree/${ref}` : undefined;
+
+  return card(buildTitle("🌱", "Reference Created", href), [
+    formatRepoActor(payload),
+    `🏷️ ${esc(payload.ref_type ?? "ref")} · <code>${esc(ref)}</code>`,
+  ]);
 }

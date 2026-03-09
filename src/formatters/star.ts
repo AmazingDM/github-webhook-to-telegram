@@ -1,10 +1,9 @@
 import type { GitHubPayload } from "../types";
-import { formatMissing, formatRepoStats } from "./shared";
+import { buildTitle, card, formatRepoActor, formatRepoStats } from "./shared";
 
 export function formatStar(payload: GitHubPayload): string {
-  if (!payload.repository) {
-    return formatMissing("Missing repository data");
-  }
-
-  return formatRepoStats(payload.repository);
+  return card(buildTitle("⭐", "Stars Updated", payload.repository?.html_url), [
+    formatRepoActor(payload),
+    formatRepoStats(payload.repository),
+  ]);
 }

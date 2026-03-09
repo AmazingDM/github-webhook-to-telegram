@@ -1,14 +1,14 @@
 import type { GitHubPayload } from "../types";
-import { formatField, formatLinkField, formatMissing } from "./shared";
+import { buildTitle, card, esc, formatRepoActor } from "./shared";
 
 export function formatDiscussion(payload: GitHubPayload): string {
   const discussion = payload.discussion;
   if (!discussion) {
-    return formatMissing("Missing discussion data");
+    return card(buildTitle("💬", "Discussion Activity"), [formatRepoActor(payload)]);
   }
 
-  return [
-    formatField("ID", `#${discussion.number}`),
-    formatLinkField("Title", discussion.html_url, discussion.title),
-  ].join("\n");
+  return card(buildTitle("💬", `Discussion #${discussion.number}`, discussion.html_url), [
+    `📋 ${esc(discussion.title)}`,
+    formatRepoActor(payload),
+  ]);
 }

@@ -2,81 +2,50 @@ import type { GitHubPayload } from "../types";
 
 export type Formatter = (payload: GitHubPayload) => string | null;
 
-export interface EventMeta {
-  icon: string;
-  label: string;
+export function card(title: string, bodyLines: Array<string | null | undefined>): string {
+  const body = bodyLines.filter((line): line is string => line != null).join("\n");
+  return `${title}\n\n<blockquote>${body}</blockquote>`;
 }
 
-export const EVENT_META: Record<string, EventMeta> = {
-  create: { icon: "🌱", label: "Reference Created" },
-  delete: { icon: "🗑️", label: "Reference Deleted" },
-  discussion: { icon: "💬", label: "Discussion Activity" },
-  fork: { icon: "🍴", label: "Repository Forked" },
-  issues: { icon: "🐞", label: "Issue Activity" },
-  ping: { icon: "📡", label: "Webhook Ping" },
-  public: { icon: "🌍", label: "Repository Public" },
-  pull_request: { icon: "🔀", label: "Pull Request Activity" },
-  push: { icon: "🚀", label: "Push Update" },
-  star: { icon: "⭐", label: "Stars Updated" },
-};
-
-export function buildMessage({
-  icon,
-  label,
-  payload,
-  details,
-}: EventMeta & { payload: GitHubPayload; details: string | null }): string {
-  const lines = [
-    `${icon} <b>${label}</b>`,
-    formatRepositoryLine(payload),
-    formatActorLine(payload),
-  ];
-
-  if (payload.action) {
-    lines.push(formatField("Action", `<code>${escapeHtml(payload.action)}</code>`));
+export function truncate(text?: string | null, maxLen = 200): string {
+  if (!text) {
+    return "";
   }
 
-  if (details) {
-    lines.push("", details);
-  }
-
-  return lines.join("\n");
+  const normalized = text.split(/\s+/).join(" ").trim();
+  return normalized.length > maxLen ? `${normalized.slice(0, maxLen)}…` : normalized;
 }
 
-export function formatRepositoryLine(payload: GitHubPayload): string {
-  if (payload.repository) {
-    return formatLinkField("Repository", payload.repository.html_url, payload.repository.full_name);
-  }
-
-  return formatField("Target", escapeHtml(payload.organization?.login ?? "unknown"));
-}
-
-export function formatActorLine(payload: GitHubPayload): string {
-  return formatField("Actor", `<code>${escapeHtml(payload.sender.login)}</code>`);
-}
-
-export function formatRepoStats(repo: GitHubPayload["repository"]): string {
-  if (!repo) {
-    return formatMissing("Missing repository data");
-  }
-
-  return `⭐ <b>${repo.stargazers_count}</b> stars · 🍴 <b>${repo.forks_count}</b> forks`;
-}
-
-export function formatField(label: string, value: string): string {
-  return `<b>${label}</b> · ${value}`;
-}
-
-export function formatLinkField(label: string, href: string | undefined, text: string): string {
+export function buildTitle(icon: string, label: string, href?: string): string {
   if (!href) {
-    return formatField(label, escapeHtml(text));
+    return `${icon} <b>${esc(label)}</b>`;
   }
 
-  return formatField(label, `<a href="${href}">${escapeHtml(text)}</a>`);
+  return `${icon} <a href="${esc(href)}"><b>${esc(label)}</b></a>`;
 }
 
-export function formatMissing(message: string): string {
-  return `⚠️ <i>${escapeHtml(message)}.</i>`;
+export function formatRepo(repo?: GitHubPayload["repository"]): string {
+  return `📦 <code>${esc(repo?.full_name ?? "unknown")}</code>`;
+}
+
+export function formatActor(login?: string): string {
+  return `👤 <code>${esc(login ?? "unknown")}</code>`;
+}
+
+export function formatRepoActor(payload: GitHubPayload): string {
+  return `${formatRepo(payload.repository)} · ${formatActor(payload.sender.login)}`;
+}
+
+export function formatRepoStats(repo?: GitHubPayload["repository"]): string {
+  return `⭐ <b>${repo?.stargazers_count ?? 0}</b> stars · 🍴 <b>${repo?.forks_count ?? 0}</b> forks`;
+}
+
+export function formatCodeList(entries: Array<{ name: string } | null | undefined>): string {
+  return entries.map((entry) => `<code>${esc(entry?.name ?? "")}</code>`).join(" ");
+}
+
+export function formatUserCodeList(entries: Array<{ login: string } | null | undefined>): string {
+  return entries.map((entry) => `<code>${esc(entry?.login ?? "")}</code>`).join(" ");
 }
 
 export function formatRef(ref?: string): string {
@@ -90,6 +59,10 @@ export function formatRef(ref?: string): string {
     .replace(/^refs\//, "");
 }
 
+export function firstLine(text?: string | null): string {
+  return text?.split("\n")[0] ?? "";
+}
+
 /**
  * Telegram uses HTML parse mode, so escape reserved characters once here.
  */
@@ -100,4 +73,8 @@ export function escapeHtml(text: string): string {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+export function esc(value: unknown): string {
+  return value == null ? "" : escapeHtml(String(value));
 }
