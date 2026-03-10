@@ -6,6 +6,8 @@ A Cloudflare Workers service that receives GitHub webhooks and forwards supporte
 
 The current codebase is a TypeScript/Workers rewrite of the original Python `aiohttp` implementation. The goal is to preserve the original behavior while providing a cleaner serverless deployment model, test coverage, and open-source project documentation.
 
+Upstream repository: [dashezup/github-webhook-to-telegram](https://github.com/dashezup/github-webhook-to-telegram)
+
 ## Features
 - Accept GitHub webhook requests on `POST /`
 - Verify `X-Hub-Signature-256` signatures before processing payloads

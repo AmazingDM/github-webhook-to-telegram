@@ -6,6 +6,8 @@
 
 当前代码库是对原始 Python `aiohttp` 版本的 TypeScript/Workers 重写，目标是在保留原有行为语义的前提下，提供更清晰的 Serverless 部署方式、测试覆盖和开源项目文档结构。
 
+上游仓库引用：[dashezup/github-webhook-to-telegram](https://github.com/dashezup/github-webhook-to-telegram)
+
 ## 功能特性
 - 在 `POST /` 接收 GitHub Webhook 请求
 - 在处理负载前校验 `X-Hub-Signature-256` 签名
