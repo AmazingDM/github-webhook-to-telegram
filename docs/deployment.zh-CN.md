@@ -15,7 +15,7 @@
 | Workflow 文件 | 作用 | 触发条件 |
 | --- | --- | --- |
 | [`.github/workflows/cloudflare-worker-checks.yml`](../.github/workflows/cloudflare-worker-checks.yml) | 安装、类型检查、构建、测试、上传 `dist/` | `push`、`pull_request`、`workflow_dispatch` |
-| [`.github/workflows/cloudflare-worker-deploy.yml`](../.github/workflows/cloudflare-worker-deploy.yml) | 校验、同步 Worker Secrets、发布到 Cloudflare | `main` 分支 `push`、`workflow_dispatch` |
+| [`.github/workflows/cloudflare-worker-deploy.yml`](../.github/workflows/cloudflare-worker-deploy.yml) | 校验、发布到 Cloudflare，然后同步 Worker Secrets | `main` 分支 `push`、`workflow_dispatch` |
 
 ## 部署必备输入项
 | 项目 | 用途 | 存放位置 | 格式 |
@@ -27,43 +27,13 @@
 | Worker 地址 | GitHub Webhook `Payload URL` | GitHub Webhook 设置页 | 完整 HTTPS URL |
 | Webhook Secret | 请求签名校验 | GitHub Webhook 设置页 | 必须与 `HOOK_CONFIG_JSON` 中命中的 `secret` 一致 |
 
-## 最小模板
-### GitHub Secrets
-```dotenv
-BOT_TOKEN=123456:replace-with-real-bot-token
-HOOK_CONFIG_JSON={"gh_webhooks":{"your-org/your-repo":{"chat_id":-1001234567890,"secret":"replace-with-random-secret"}}}
-CLOUDFLARE_API_TOKEN=replace-with-cloudflare-api-token
-CLOUDFLARE_ACCOUNT_ID=replace-with-cloudflare-account-id
-```
-
-### `HOOK_CONFIG_JSON`
-```json
-{
-  "gh_webhooks": {
-    "your-org/your-repo": {
-      "chat_id": -1001234567890,
-      "secret": "replace-with-random-secret"
-    },
-    "your-org": {
-      "chat_id": "@your_channel",
-      "secret": "replace-with-another-secret"
-    }
-  }
-}
-```
-
-### GitHub Webhook 页面填写
-```text
-Payload URL: https://<your-worker>.<your-subdomain>.workers.dev/
-Content type: application/json
-Secret: replace-with-random-secret
-Events: Send me everything
-Active: checked
-```
+具体模板和逐步操作集中在两份专题文档中：
+- [GitHub Actions 部署说明](deployment-actions.zh-CN.md)：仓库 Secrets、CI 和发布规则
+- [Cloudflare Worker 自动部署说明](deployment-worker-auto.zh-CN.md)：Worker Secrets、`HOOK_CONFIG_JSON`、Webhook 页面填写和上线检查
 
 ## 注意事项
 - checks workflow 只负责 CI 校验，不能承担发布职责。
 - deploy workflow 在发布前会重新执行类型检查、构建和测试，不会跳过校验直接上线。
-- deploy workflow 会先用 `wrangler secret put` 同步 `BOT_TOKEN` 和 `HOOK_CONFIG_JSON`，再执行 `wrangler deploy`。
+- 当前 deploy workflow 先执行 `npm run deploy`，再用 `wrangler secret put` 同步 `BOT_TOKEN` 和 `HOOK_CONFIG_JSON`。
 - GitHub Webhook 页面的 `Secret` 必须与命中的 `HOOK_CONFIG_JSON.gh_webhooks[*].secret` 完全一致。
 - 当前实现会优先按 `organization.login` 匹配，其次才是 `repository.full_name`；两者都命中时组织级配置优先。

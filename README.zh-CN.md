@@ -24,7 +24,7 @@
 - `.dev.vars.example`：本地开发环境变量示例
 
 ## 环境要求
-- Node.js 20+
+- Node.js 24+
 - npm 10+
 - 具备 Wrangler 访问能力的 Cloudflare 账号
 - Telegram Bot Token
@@ -34,48 +34,16 @@
 2. 复制 `.dev.vars.example` 为 `.dev.vars`
 3. 填入 `BOT_TOKEN` 和 `HOOK_CONFIG_JSON`
 4. 启动本地开发：`npm run dev`
-5. 运行测试：`npm test`
-6. 执行类型检查：`npm run typecheck`
-7. 验证打包：`npm run build`
-8. 发布到 Cloudflare Workers：`npm run deploy`
+5. 完整接入流程见 [docs/usage.zh-CN.md](docs/usage.zh-CN.md)
+6. 部署路径和发布前提见 [docs/deployment.zh-CN.md](docs/deployment.zh-CN.md)
 
 ## 运行时配置
-Worker 读取两个必填运行时变量：
+Worker 读取两个必填运行时变量。完整结构和匹配规则见 [docs/input-parameters.zh-CN.md](docs/input-parameters.zh-CN.md)。
 
 - `BOT_TOKEN`
   由 [BotFather](https://t.me/BotFather) 创建的 Telegram Bot Token。
 - `HOOK_CONFIG_JSON`
   一个单行 JSON 字符串，用于把仓库或组织映射到 Telegram 目标。
-
-示例：
-
-```json
-{
-  "gh_webhooks": {
-    "Codertocat/Hello-World": {
-      "chat_id": -1001234567890,
-      "secret": "FPAh9pwRHCLpRL7j"
-    },
-    "octo-org": {
-      "chat_id": "@username",
-      "secret": "KLrYeiA3vNLPVbAv"
-    }
-  }
-}
-```
-
-## 开发命令
-```bash
-npm install
-npm run dev
-npm run typecheck
-npm run build
-npm test
-npm run test:watch
-npm run deploy
-```
-
-`npm run build` 会执行类型检查和 Worker 干跑打包，构建产物写入 `dist/`，其中包含用于 CI 检查的 `dist/bundle-meta.json`。
 
 ## 文档导航
 英文文档：

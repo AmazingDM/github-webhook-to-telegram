@@ -63,11 +63,11 @@ HOOK_CONFIG_JSON={"gh_webhooks":{"your-org/your-repo":{"chat_id":-1001234567890,
 Store `HOOK_CONFIG_JSON` as a single-line JSON string without comments or Markdown wrappers.
 
 ## GitHub Actions Secret Sync
-The automated deploy workflow syncs these values into the Worker before release:
+The current automated deploy workflow syncs these values into the Worker after `npm run deploy`:
 - `BOT_TOKEN`
 - `HOOK_CONFIG_JSON`
 
-That means the GitHub Actions secrets must stay aligned with the production Worker configuration.
+That means the GitHub Actions secrets must stay aligned with the production Worker configuration, and any secret change is only reflected after the sync step completes.
 
 ## Recommended `HOOK_CONFIG_JSON`
 Readable form:

@@ -10,7 +10,7 @@
 | Workflow 文件 | 作用 | 触发条件 |
 | --- | --- | --- |
 | [`.github/workflows/cloudflare-worker-checks.yml`](../.github/workflows/cloudflare-worker-checks.yml) | 安装依赖、类型检查、构建、测试、上传 `dist/` | `push`、`pull_request`、`workflow_dispatch` |
-| [`.github/workflows/cloudflare-worker-deploy.yml`](../.github/workflows/cloudflare-worker-deploy.yml) | 校验、同步 Worker Secrets、发布到 Cloudflare | `main` 分支 `push`、`workflow_dispatch` |
+| [`.github/workflows/cloudflare-worker-deploy.yml`](../.github/workflows/cloudflare-worker-deploy.yml) | 校验、发布到 Cloudflare，然后同步 Worker Secrets | `main` 分支 `push`、`workflow_dispatch` |
 
 ## Checks Workflow
 checks workflow 是仓库的 CI 路径，负责：
@@ -36,8 +36,8 @@ deploy workflow 是发布路径。它会：
 | --- | --- | --- | --- |
 | `CLOUDFLARE_API_TOKEN` | 是 | 发布时的 Cloudflare API 认证 | 单行字符串 |
 | `CLOUDFLARE_ACCOUNT_ID` | 是 | 指定 Cloudflare 账号 | 单行字符串 |
-| `BOT_TOKEN` | 是 | 发布前同步到 Worker 运行时 | Telegram Token 字符串 |
-| `HOOK_CONFIG_JSON` | 是 | 发布前同步到 Worker 运行时 | 单行 JSON 字符串 |
+| `BOT_TOKEN` | 是 | 发布后同步到 Worker 运行时 | Telegram Token 字符串 |
+| `HOOK_CONFIG_JSON` | 是 | 发布后同步到 Worker 运行时 | 单行 JSON 字符串 |
 
 模板：
 ```dotenv

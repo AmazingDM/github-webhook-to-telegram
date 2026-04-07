@@ -15,7 +15,7 @@ The repository includes two workflows:
 | Workflow file | Purpose | Triggers |
 | --- | --- | --- |
 | [`.github/workflows/cloudflare-worker-checks.yml`](../.github/workflows/cloudflare-worker-checks.yml) | install, type check, build, test, upload `dist/` | `push`, `pull_request`, `workflow_dispatch` |
-| [`.github/workflows/cloudflare-worker-deploy.yml`](../.github/workflows/cloudflare-worker-deploy.yml) | validate, sync Worker secrets, deploy to Cloudflare | `push` on `main`, `workflow_dispatch` |
+| [`.github/workflows/cloudflare-worker-deploy.yml`](../.github/workflows/cloudflare-worker-deploy.yml) | validate, deploy to Cloudflare, then sync Worker secrets | `push` on `main`, `workflow_dispatch` |
 
 ## Required Deployment Inputs
 | Item | Purpose | Stored In | Format |
@@ -27,43 +27,13 @@ The repository includes two workflows:
 | Worker URL | GitHub webhook `Payload URL` | GitHub webhook settings | full HTTPS URL |
 | Webhook secret | request signature verification | GitHub webhook settings | must match the target `secret` in `HOOK_CONFIG_JSON` |
 
-## Minimal Templates
-### GitHub Secrets
-```dotenv
-BOT_TOKEN=123456:replace-with-real-bot-token
-HOOK_CONFIG_JSON={"gh_webhooks":{"your-org/your-repo":{"chat_id":-1001234567890,"secret":"replace-with-random-secret"}}}
-CLOUDFLARE_API_TOKEN=replace-with-cloudflare-api-token
-CLOUDFLARE_ACCOUNT_ID=replace-with-cloudflare-account-id
-```
-
-### `HOOK_CONFIG_JSON`
-```json
-{
-  "gh_webhooks": {
-    "your-org/your-repo": {
-      "chat_id": -1001234567890,
-      "secret": "replace-with-random-secret"
-    },
-    "your-org": {
-      "chat_id": "@your_channel",
-      "secret": "replace-with-another-secret"
-    }
-  }
-}
-```
-
-### GitHub Webhook Form
-```text
-Payload URL: https://<your-worker>.<your-subdomain>.workers.dev/
-Content type: application/json
-Secret: replace-with-random-secret
-Events: Send me everything
-Active: checked
-```
+Use the detailed guides for templates and step-by-step procedures:
+- [GitHub Actions Deployment Guide](deployment-actions.md) for repository secrets, CI, and release rules
+- [Cloudflare Worker Deployment Guide](deployment-worker-auto.md) for Worker secrets, `HOOK_CONFIG_JSON`, webhook form values, and rollout checks
 
 ## Important Notes
 - The checks workflow is CI only. It must not perform deployment.
 - The deploy workflow re-runs type check, build, and test before release; deployment does not bypass validation.
-- The deploy workflow writes `BOT_TOKEN` and `HOOK_CONFIG_JSON` into Cloudflare with `wrangler secret put` before `wrangler deploy`.
+- The current deploy workflow runs `npm run deploy` first, then syncs `BOT_TOKEN` and `HOOK_CONFIG_JSON` with `wrangler secret put`.
 - The GitHub webhook `Secret` must exactly match the selected `HOOK_CONFIG_JSON.gh_webhooks[*].secret` value.
 - The current implementation matches `organization.login` before `repository.full_name`; organization-level configuration wins when both exist.

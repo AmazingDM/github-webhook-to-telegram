@@ -24,7 +24,7 @@ Upstream repository: [dashezup/github-webhook-to-telegram](https://github.com/da
 - `.dev.vars.example`: local development environment example
 
 ## Requirements
-- Node.js 20+
+- Node.js 24+
 - npm 10+
 - A Cloudflare account with Wrangler access
 - A Telegram bot token
@@ -34,48 +34,16 @@ Upstream repository: [dashezup/github-webhook-to-telegram](https://github.com/da
 2. Copy `.dev.vars.example` to `.dev.vars`
 3. Fill in `BOT_TOKEN` and `HOOK_CONFIG_JSON`
 4. Start local development: `npm run dev`
-5. Run tests: `npm test`
-6. Run type checking: `npm run typecheck`
-7. Validate the bundle: `npm run build`
-8. Deploy to Cloudflare Workers: `npm run deploy`
+5. Follow the full setup guide in [docs/usage.md](docs/usage.md)
+6. Use [docs/deployment.md](docs/deployment.md) for deployment paths and release prerequisites
 
 ## Runtime Configuration
-The Worker reads two required runtime variables:
+The Worker reads two required runtime variables. For the full structure and matching rules, see [docs/input-parameters.md](docs/input-parameters.md).
 
 - `BOT_TOKEN`
   Telegram bot token created with [BotFather](https://t.me/BotFather).
 - `HOOK_CONFIG_JSON`
   A single JSON string that maps repositories or organizations to Telegram targets.
-
-Example:
-
-```json
-{
-  "gh_webhooks": {
-    "Codertocat/Hello-World": {
-      "chat_id": -1001234567890,
-      "secret": "FPAh9pwRHCLpRL7j"
-    },
-    "octo-org": {
-      "chat_id": "@username",
-      "secret": "KLrYeiA3vNLPVbAv"
-    }
-  }
-}
-```
-
-## Development Commands
-```bash
-npm install
-npm run dev
-npm run typecheck
-npm run build
-npm test
-npm run test:watch
-npm run deploy
-```
-
-`npm run build` performs type checking and a dry-run Worker bundle build. The bundled output is written to `dist/`, including `dist/bundle-meta.json` for CI artifact inspection.
 
 ## Documentation
 English documentation:

@@ -9,6 +9,6 @@
 - Added a `test/` directory with coverage for config parsing, webhook validation, formatting, Telegram delivery, and the Worker entrypoint.
 - Expanded project documentation for usage, deployment, migration, and architecture.
 - Replaced the legacy Python GitHub Actions flow with a Node.js build-and-test workflow.
-- Upgraded dependencies to current stable npm versions and raised the minimum Node.js version to 20+.
+- Upgraded dependencies to current stable npm versions and raised the minimum Node.js version to 24+.
 - Added CI artifact uploads for Worker bundle output.
 
