@@ -50,7 +50,7 @@ Notes:
 ## 4. Run Locally
 ### Install dependencies
 ```bash
-npm install
+pnpm install
 ```
 
 ### Prepare local environment variables
@@ -66,7 +66,7 @@ HOOK_CONFIG_JSON={"gh_webhooks":{"your-org/your-repo":{"chat_id":-1001234567890,
 
 ### Start the local Worker
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Wrangler starts a local development server and prints the local URL, usually `http://127.0.0.1:8787/`.
@@ -74,17 +74,17 @@ Wrangler starts a local development server and prints the local URL, usually `ht
 ## 5. Validate Locally
 ### Run automated tests
 ```bash
-npm test
+pnpm test
 ```
 
 ### Run type checking
 ```bash
-npm run typecheck
+pnpm typecheck
 ```
 
 ### Run bundle validation
 ```bash
-npm run build
+pnpm build
 ```
 
 On success:

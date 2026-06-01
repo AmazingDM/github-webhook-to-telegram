@@ -14,10 +14,10 @@
 
 ## Checks Workflow
 checks workflow 是仓库的 CI 路径，负责：
-- 通过 `npm ci` 安装依赖
-- 执行 `npm run typecheck`
-- 执行 `npm run build`
-- 执行 `npm test`
+- 通过 `pnpm install --frozen-lockfile` 安装依赖
+- 执行 `pnpm typecheck`
+- 执行 `pnpm build`
+- 执行 `pnpm test`
 - 上传 `dist/` 构建产物
 
 这个 workflow 必须保持不发布生产环境，这样 PR 和普通 push 都不会误上线。
@@ -26,7 +26,7 @@ checks workflow 是仓库的 CI 路径，负责：
 deploy workflow 是发布路径。它会：
 - 在 `main` 分支 push 和手动触发时运行
 - 在部署前重新执行类型检查、构建和测试
-- 通过 `npm run deploy` 发布 Worker
+- 通过 `pnpm deploy` 发布 Worker
 - 在代码部署成功后，通过 `wrangler secret put` 把 `BOT_TOKEN` 和 `HOOK_CONFIG_JSON` 同步到 Cloudflare
 
 ## 必需的 GitHub Secrets

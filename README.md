@@ -25,15 +25,15 @@ Upstream repository: [dashezup/github-webhook-to-telegram](https://github.com/da
 
 ## Requirements
 - Node.js 24+
-- npm 10+
+- pnpm 10.33.3
 - A Cloudflare account with Wrangler access
 - A Telegram bot token
 
 ## Quick Start
-1. Install dependencies: `npm install`
+1. Install dependencies: `pnpm install`
 2. Copy `.dev.vars.example` to `.dev.vars`
 3. Fill in `BOT_TOKEN` and `HOOK_CONFIG_JSON`
-4. Start local development: `npm run dev`
+4. Start local development: `pnpm dev`
 5. Follow the full setup guide in [docs/usage.md](docs/usage.md)
 6. Use [docs/deployment.md](docs/deployment.md) for deployment paths and release prerequisites
 

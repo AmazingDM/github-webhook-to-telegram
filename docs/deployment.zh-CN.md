@@ -34,6 +34,6 @@
 ## 注意事项
 - checks workflow 只负责 CI 校验，不能承担发布职责。
 - deploy workflow 在发布前会重新执行类型检查、构建和测试，不会跳过校验直接上线。
-- 当前 deploy workflow 先执行 `npm run deploy`，再用 `wrangler secret put` 同步 `BOT_TOKEN` 和 `HOOK_CONFIG_JSON`。
+- 当前 deploy workflow 先执行 `pnpm deploy`，再用 `wrangler secret put` 同步 `BOT_TOKEN` 和 `HOOK_CONFIG_JSON`。
 - GitHub Webhook 页面的 `Secret` 必须与命中的 `HOOK_CONFIG_JSON.gh_webhooks[*].secret` 完全一致。
 - 当前实现会优先按 `organization.login` 匹配，其次才是 `repository.full_name`；两者都命中时组织级配置优先。

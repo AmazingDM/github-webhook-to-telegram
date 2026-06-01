@@ -34,6 +34,6 @@ Use the detailed guides for templates and step-by-step procedures:
 ## Important Notes
 - The checks workflow is CI only. It must not perform deployment.
 - The deploy workflow re-runs type check, build, and test before release; deployment does not bypass validation.
-- The current deploy workflow runs `npm run deploy` first, then syncs `BOT_TOKEN` and `HOOK_CONFIG_JSON` with `wrangler secret put`.
+- The current deploy workflow runs `pnpm deploy` first, then syncs `BOT_TOKEN` and `HOOK_CONFIG_JSON` with `wrangler secret put`.
 - The GitHub webhook `Secret` must exactly match the selected `HOOK_CONFIG_JSON.gh_webhooks[*].secret` value.
 - The current implementation matches `organization.login` before `repository.full_name`; organization-level configuration wins when both exist.

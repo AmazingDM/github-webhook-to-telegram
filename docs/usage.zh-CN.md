@@ -50,7 +50,7 @@
 ## 4. 本地运行
 ### 安装依赖
 ```bash
-npm install
+pnpm install
 ```
 
 ### 准备本地环境变量
@@ -66,7 +66,7 @@ HOOK_CONFIG_JSON={"gh_webhooks":{"your-org/your-repo":{"chat_id":-1001234567890,
 
 ### 启动本地 Worker
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Wrangler 会启动本地开发服务并输出地址，通常为 `http://127.0.0.1:8787/`。
@@ -74,17 +74,17 @@ Wrangler 会启动本地开发服务并输出地址，通常为 `http://127.0.0.
 ## 5. 本地验证
 ### 运行自动化测试
 ```bash
-npm test
+pnpm test
 ```
 
 ### 执行类型检查
 ```bash
-npm run typecheck
+pnpm typecheck
 ```
 
 ### 执行打包验证
 ```bash
-npm run build
+pnpm build
 ```
 
 成功后：

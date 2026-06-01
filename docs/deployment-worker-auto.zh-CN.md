@@ -8,9 +8,9 @@
 项目以 Cloudflare Worker 形式部署，核心文件与命令如下：
 - 配置文件：[wrangler.toml](../wrangler.toml)
 - 入口文件：[src/index.ts](../src/index.ts)
-- 本地开发：`npm run dev`
-- 打包校验：`npm run build`
-- 正式部署：`npm run deploy`
+- 本地开发：`pnpm dev`
+- 打包校验：`pnpm build`
+- 正式部署：`pnpm deploy`
 - 自动发布 workflow：[`.github/workflows/cloudflare-worker-deploy.yml`](../.github/workflows/cloudflare-worker-deploy.yml)
 
 ## 前置准备
@@ -63,7 +63,7 @@ HOOK_CONFIG_JSON={"gh_webhooks":{"your-org/your-repo":{"chat_id":-1001234567890,
 `HOOK_CONFIG_JSON` 必须以单行 JSON 形式保存，不能带注释，也不要包 Markdown 标记。
 
 ## GitHub Actions Secret 同步
-当前自动发布 workflow 会在 `npm run deploy` 成功后，把以下值同步到 Worker：
+当前自动发布 workflow 会在 `pnpm deploy` 成功后，把以下值同步到 Worker：
 - `BOT_TOKEN`
 - `HOOK_CONFIG_JSON`
 
@@ -103,8 +103,8 @@ Active: checked
 ```
 
 ## 推荐上线顺序
-1. 本地执行 `npm run build`
-2. 本地手动执行一次 `npm run deploy`
+1. 本地执行 `pnpm build`
+2. 本地手动执行一次 `pnpm deploy`
 3. 填好 GitHub Webhook 并验证端到端通知
 4. 手动流程稳定后，再用 deploy workflow 做可重复的生产发布
 

@@ -25,15 +25,15 @@
 
 ## 环境要求
 - Node.js 24+
-- npm 10+
+- pnpm 10.33.3
 - 具备 Wrangler 访问能力的 Cloudflare 账号
 - Telegram Bot Token
 
 ## 快速开始
-1. 安装依赖：`npm install`
+1. 安装依赖：`pnpm install`
 2. 复制 `.dev.vars.example` 为 `.dev.vars`
 3. 填入 `BOT_TOKEN` 和 `HOOK_CONFIG_JSON`
-4. 启动本地开发：`npm run dev`
+4. 启动本地开发：`pnpm dev`
 5. 完整接入流程见 [docs/usage.zh-CN.md](docs/usage.zh-CN.md)
 6. 部署路径和发布前提见 [docs/deployment.zh-CN.md](docs/deployment.zh-CN.md)
 

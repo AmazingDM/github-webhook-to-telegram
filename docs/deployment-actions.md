@@ -14,10 +14,10 @@ The repository uses two workflow files:
 
 ## Checks Workflow
 The checks workflow is the repository CI path. It is responsible for:
-- dependency installation with `npm ci`
-- `npm run typecheck`
-- `npm run build`
-- `npm test`
+- dependency installation with `pnpm install --frozen-lockfile`
+- `pnpm typecheck`
+- `pnpm build`
+- `pnpm test`
 - artifact upload for `dist/`
 
 This workflow must stay release-free so pull requests and normal pushes never publish to production.
@@ -26,7 +26,7 @@ This workflow must stay release-free so pull requests and normal pushes never pu
 The deploy workflow is the release path. It:
 - runs on `main` pushes and manual dispatches
 - repeats type check, build, and test before deployment
-- publishes the Worker with `npm run deploy`
+- publishes the Worker with `pnpm deploy`
 - then syncs `BOT_TOKEN` and `HOOK_CONFIG_JSON` to Cloudflare with `wrangler secret put`
 
 ## Required GitHub Secrets

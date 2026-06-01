@@ -8,9 +8,9 @@ This document focuses on the Worker side: Wrangler, Cloudflare runtime configura
 The project is deployed as a Cloudflare Worker with the following core files and commands:
 - configuration: [wrangler.toml](../wrangler.toml)
 - entrypoint: [src/index.ts](../src/index.ts)
-- local development: `npm run dev`
-- bundle validation: `npm run build`
-- production deployment: `npm run deploy`
+- local development: `pnpm dev`
+- bundle validation: `pnpm build`
+- production deployment: `pnpm deploy`
 - automated release workflow: [`.github/workflows/cloudflare-worker-deploy.yml`](../.github/workflows/cloudflare-worker-deploy.yml)
 
 ## Prerequisites
@@ -63,7 +63,7 @@ HOOK_CONFIG_JSON={"gh_webhooks":{"your-org/your-repo":{"chat_id":-1001234567890,
 Store `HOOK_CONFIG_JSON` as a single-line JSON string without comments or Markdown wrappers.
 
 ## GitHub Actions Secret Sync
-The current automated deploy workflow syncs these values into the Worker after `npm run deploy`:
+The current automated deploy workflow syncs these values into the Worker after `pnpm deploy`:
 - `BOT_TOKEN`
 - `HOOK_CONFIG_JSON`
 
@@ -103,8 +103,8 @@ Active: checked
 ```
 
 ## Recommended Rollout Sequence
-1. Run `npm run build` locally.
-2. Run one manual `npm run deploy` release.
+1. Run `pnpm build` locally.
+2. Run one manual `pnpm deploy` release.
 3. Fill in GitHub webhook settings and verify an end-to-end delivery.
 4. Use the deploy workflow for repeatable production releases after the manual flow is proven.
 
