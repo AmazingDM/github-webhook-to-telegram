@@ -14,8 +14,8 @@ The repository includes two workflows:
 
 | Workflow file | Purpose | Triggers |
 | --- | --- | --- |
-| [`.github/workflows/cloudflare-worker-checks.yml`](../.github/workflows/cloudflare-worker-checks.yml) | install, type check, build, test, upload `dist/` | `push`, `pull_request`, `workflow_dispatch` |
-| [`.github/workflows/cloudflare-worker-deploy.yml`](../.github/workflows/cloudflare-worker-deploy.yml) | validate, deploy to Cloudflare, then sync Worker secrets | `push` on `main`, `workflow_dispatch` |
+| [`.github/workflows/cloudflare-worker-checks.yml`](../.github/workflows/cloudflare-worker-checks.yml) | install, type check, build, test, upload `dist/` | branch `push`, `pull_request`, `workflow_dispatch` |
+| [`.github/workflows/cloudflare-worker-deploy.yml`](../.github/workflows/cloudflare-worker-deploy.yml) | validate, deploy to Cloudflare, then sync Worker secrets | tag `push` only |
 
 ## Required Deployment Inputs
 | Item | Purpose | Stored In | Format |
@@ -34,6 +34,7 @@ Use the detailed guides for templates and step-by-step procedures:
 ## Important Notes
 - The checks workflow is CI only. It must not perform deployment.
 - The deploy workflow re-runs type check, build, and test before release; deployment does not bypass validation.
+- The deploy workflow only publishes on Git tag pushes; normal commits only run checks.
 - The current deploy workflow runs `pnpm deploy` first, then syncs `BOT_TOKEN` and `HOOK_CONFIG_JSON` with `wrangler secret put`.
 - The GitHub webhook `Secret` must exactly match the selected `HOOK_CONFIG_JSON.gh_webhooks[*].secret` value.
 - The current implementation matches `organization.login` before `repository.full_name`; organization-level configuration wins when both exist.

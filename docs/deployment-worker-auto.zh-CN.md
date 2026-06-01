@@ -63,7 +63,7 @@ HOOK_CONFIG_JSON={"gh_webhooks":{"your-org/your-repo":{"chat_id":-1001234567890,
 `HOOK_CONFIG_JSON` 必须以单行 JSON 形式保存，不能带注释，也不要包 Markdown 标记。
 
 ## GitHub Actions Secret 同步
-当前自动发布 workflow 会在 `pnpm deploy` 成功后，把以下值同步到 Worker：
+当前自动发布 workflow 只在推送 Git tag 时运行。它会在 `pnpm deploy` 成功后，把以下值同步到 Worker：
 - `BOT_TOKEN`
 - `HOOK_CONFIG_JSON`
 
@@ -106,7 +106,7 @@ Active: checked
 1. 本地执行 `pnpm build`
 2. 本地手动执行一次 `pnpm deploy`
 3. 填好 GitHub Webhook 并验证端到端通知
-4. 手动流程稳定后，再用 deploy workflow 做可重复的生产发布
+4. 手动流程稳定后，推送发布 tag，用 deploy workflow 做可重复的生产发布
 
 ## 排障建议
 ### GitHub 返回 `403`

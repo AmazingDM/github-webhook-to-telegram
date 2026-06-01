@@ -14,8 +14,8 @@
 
 | Workflow 文件 | 作用 | 触发条件 |
 | --- | --- | --- |
-| [`.github/workflows/cloudflare-worker-checks.yml`](../.github/workflows/cloudflare-worker-checks.yml) | 安装、类型检查、构建、测试、上传 `dist/` | `push`、`pull_request`、`workflow_dispatch` |
-| [`.github/workflows/cloudflare-worker-deploy.yml`](../.github/workflows/cloudflare-worker-deploy.yml) | 校验、发布到 Cloudflare，然后同步 Worker Secrets | `main` 分支 `push`、`workflow_dispatch` |
+| [`.github/workflows/cloudflare-worker-checks.yml`](../.github/workflows/cloudflare-worker-checks.yml) | 安装、类型检查、构建、测试、上传 `dist/` | 分支 `push`、`pull_request`、`workflow_dispatch` |
+| [`.github/workflows/cloudflare-worker-deploy.yml`](../.github/workflows/cloudflare-worker-deploy.yml) | 校验、发布到 Cloudflare，然后同步 Worker Secrets | 仅 tag `push` |
 
 ## 部署必备输入项
 | 项目 | 用途 | 存放位置 | 格式 |
@@ -34,6 +34,7 @@
 ## 注意事项
 - checks workflow 只负责 CI 校验，不能承担发布职责。
 - deploy workflow 在发布前会重新执行类型检查、构建和测试，不会跳过校验直接上线。
+- deploy workflow 只在推送 Git tag 时发布；普通提交只运行 checks。
 - 当前 deploy workflow 先执行 `pnpm deploy`，再用 `wrangler secret put` 同步 `BOT_TOKEN` 和 `HOOK_CONFIG_JSON`。
 - GitHub Webhook 页面的 `Secret` 必须与命中的 `HOOK_CONFIG_JSON.gh_webhooks[*].secret` 完全一致。
 - 当前实现会优先按 `organization.login` 匹配，其次才是 `repository.full_name`；两者都命中时组织级配置优先。

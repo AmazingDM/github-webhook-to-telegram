@@ -2,6 +2,8 @@ name: Cloudflare Worker Checks
 
 on:
   push:
+    branches:
+      - "**"
   pull_request:
   workflow_dispatch:
 

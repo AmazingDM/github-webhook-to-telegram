@@ -9,8 +9,8 @@ The repository uses two workflow files:
 
 | Workflow file | Purpose | Triggers |
 | --- | --- | --- |
-| [`.github/workflows/cloudflare-worker-checks.yml`](../.github/workflows/cloudflare-worker-checks.yml) | install dependencies, type check, build, test, upload `dist/` | `push`, `pull_request`, `workflow_dispatch` |
-| [`.github/workflows/cloudflare-worker-deploy.yml`](../.github/workflows/cloudflare-worker-deploy.yml) | validate, deploy to Cloudflare, then sync Worker secrets | `push` on `main`, `workflow_dispatch` |
+| [`.github/workflows/cloudflare-worker-checks.yml`](../.github/workflows/cloudflare-worker-checks.yml) | install dependencies, type check, build, test, upload `dist/` | branch `push`, `pull_request`, `workflow_dispatch` |
+| [`.github/workflows/cloudflare-worker-deploy.yml`](../.github/workflows/cloudflare-worker-deploy.yml) | validate, deploy to Cloudflare, then sync Worker secrets | tag `push` only |
 
 ## Checks Workflow
 The checks workflow is the repository CI path. It is responsible for:
@@ -24,7 +24,7 @@ This workflow must stay release-free so pull requests and normal pushes never pu
 
 ## Deploy Workflow
 The deploy workflow is the release path. It:
-- runs on `main` pushes and manual dispatches
+- runs only when a Git tag is pushed
 - repeats type check, build, and test before deployment
 - publishes the Worker with `pnpm deploy`
 - then syncs `BOT_TOKEN` and `HOOK_CONFIG_JSON` to Cloudflare with `wrangler secret put`
@@ -50,7 +50,7 @@ HOOK_CONFIG_JSON={"gh_webhooks":{"your-org/your-repo":{"chat_id":-1001234567890,
 ## Release Rules
 Keep these rules fixed unless the release model changes intentionally:
 - only the deploy workflow can publish to Cloudflare
-- only `main` pushes and manual dispatches can trigger deployment
+- only tag pushes can trigger deployment
 - deployment must pass type check, build, and test in the same workflow run
 - secrets must stay in GitHub Actions and Cloudflare secret stores, not in tracked files
 

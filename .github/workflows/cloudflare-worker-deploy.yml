@@ -2,9 +2,8 @@ name: Cloudflare Worker Deploy
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    tags:
+      - "*"
 
 concurrency:
   group: cloudflare-worker-deploy-${{ github.ref }}

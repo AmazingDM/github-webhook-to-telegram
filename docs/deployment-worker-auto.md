@@ -63,7 +63,7 @@ HOOK_CONFIG_JSON={"gh_webhooks":{"your-org/your-repo":{"chat_id":-1001234567890,
 Store `HOOK_CONFIG_JSON` as a single-line JSON string without comments or Markdown wrappers.
 
 ## GitHub Actions Secret Sync
-The current automated deploy workflow syncs these values into the Worker after `pnpm deploy`:
+The current automated deploy workflow runs only on Git tag pushes. After `pnpm deploy`, it syncs these values into the Worker:
 - `BOT_TOKEN`
 - `HOOK_CONFIG_JSON`
 
@@ -106,7 +106,7 @@ Active: checked
 1. Run `pnpm build` locally.
 2. Run one manual `pnpm deploy` release.
 3. Fill in GitHub webhook settings and verify an end-to-end delivery.
-4. Use the deploy workflow for repeatable production releases after the manual flow is proven.
+4. Push a release tag to use the deploy workflow for repeatable production releases after the manual flow is proven.
 
 ## Troubleshooting
 ### GitHub returns `403`

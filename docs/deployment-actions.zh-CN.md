@@ -9,8 +9,8 @@
 
 | Workflow 文件 | 作用 | 触发条件 |
 | --- | --- | --- |
-| [`.github/workflows/cloudflare-worker-checks.yml`](../.github/workflows/cloudflare-worker-checks.yml) | 安装依赖、类型检查、构建、测试、上传 `dist/` | `push`、`pull_request`、`workflow_dispatch` |
-| [`.github/workflows/cloudflare-worker-deploy.yml`](../.github/workflows/cloudflare-worker-deploy.yml) | 校验、发布到 Cloudflare，然后同步 Worker Secrets | `main` 分支 `push`、`workflow_dispatch` |
+| [`.github/workflows/cloudflare-worker-checks.yml`](../.github/workflows/cloudflare-worker-checks.yml) | 安装依赖、类型检查、构建、测试、上传 `dist/` | 分支 `push`、`pull_request`、`workflow_dispatch` |
+| [`.github/workflows/cloudflare-worker-deploy.yml`](../.github/workflows/cloudflare-worker-deploy.yml) | 校验、发布到 Cloudflare，然后同步 Worker Secrets | 仅 tag `push` |
 
 ## Checks Workflow
 checks workflow 是仓库的 CI 路径，负责：
@@ -24,7 +24,7 @@ checks workflow 是仓库的 CI 路径，负责：
 
 ## Deploy Workflow
 deploy workflow 是发布路径。它会：
-- 在 `main` 分支 push 和手动触发时运行
+- 仅在推送 Git tag 时运行
 - 在部署前重新执行类型检查、构建和测试
 - 通过 `pnpm deploy` 发布 Worker
 - 在代码部署成功后，通过 `wrangler secret put` 把 `BOT_TOKEN` 和 `HOOK_CONFIG_JSON` 同步到 Cloudflare
@@ -50,7 +50,7 @@ HOOK_CONFIG_JSON={"gh_webhooks":{"your-org/your-repo":{"chat_id":-1001234567890,
 ## 发布规则
 除非发布模型有意调整，否则建议固定以下规则：
 - 只有 deploy workflow 可以发布到 Cloudflare
-- 只有 `main` 分支 push 和手动触发可以上线
+- 只有 tag push 可以上线
 - 部署必须在同一次 workflow 中通过类型检查、构建和测试
 - Secrets 只保存在 GitHub Actions 和 Cloudflare Secret Store 中
 
