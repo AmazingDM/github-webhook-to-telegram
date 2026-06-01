@@ -2,13 +2,15 @@
 
 > English: [changelog.md](changelog.md)
 
-## 2026-03-08
-- 将项目从 Python `aiohttp` 重写为 Cloudflare Workers + TypeScript。
-- 新增 `wrangler.toml`、`package.json`、`tsconfig.json`，建立 Workers 工具链基础设施。
-- 在 `src/` 下拆分配置、GitHub 校验、消息格式化和 Telegram 发送逻辑。
-- 新增 `test/` 目录，覆盖配置解析、校验、格式化、发送和 Worker 入口处理。
-- 扩展使用、部署、迁移和架构文档。
-- 将 GitHub Actions 从旧的 Python 流程替换为 Node.js 构建与测试流程。
-- 将依赖升级到当前稳定版本，并把最低 Node.js 版本提高到 24+。
-- 为 Worker 打包产物增加 CI artifact 上传。
+## 当前版本
+- 推荐使用 fork + GitHub Actions Secrets + 手动发布或 tag 发布的部署方式。
+- 普通提交只运行检查，手动运行 deploy workflow 或推送 Git tag 才发布到 Cloudflare Worker。
+- fork 仓库可以使用每日 `Sync Upstream` workflow，在安全时快进同步上游。
+- `BOT_TOKEN` 和 `HOOK_CONFIG_JSON` 由部署 workflow 同步为 Worker Secrets。
+- 使用 pnpm、Node.js 24、TypeScript、Vitest 和 Wrangler。
 
+## 初始 Workers 版本
+- 从 Python `aiohttp` 重写为 Cloudflare Workers + TypeScript。
+- 拆分配置解析、GitHub 校验、消息格式化和 Telegram 发送逻辑。
+- 新增测试覆盖：配置、签名校验、消息格式、Telegram 调用和 Worker 响应。
+- 新增中英文文档。

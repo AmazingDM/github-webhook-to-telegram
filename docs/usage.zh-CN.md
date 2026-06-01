@@ -2,104 +2,81 @@
 
 > English: [usage.md](usage.md)
 
-本文档按照“准备 Telegram 机器人 -> 配置路由 -> 本地验证 -> 线上验证”的顺序说明如何使用本项目。
+这份教程解释运行时配置本身：Telegram、`HOOK_CONFIG_JSON`、GitHub Webhook 如何对应。部署步骤见 [deployment.zh-CN.md](deployment.zh-CN.md)。
 
-## 1. 创建 Telegram 机器人
-1. 打开 [BotFather](https://t.me/BotFather)。
-2. 发送 `/newbot`。
-3. 按提示设置机器人名称和用户名。
-4. 记录 BotFather 返回的 Token，这就是 `BOT_TOKEN`。
+## 1. Telegram Bot
+1. 在 Telegram 打开 [BotFather](https://t.me/BotFather)。
+2. 发送 `/newbot` 创建机器人。
+3. 记录 Token，作为 `BOT_TOKEN`。
+4. 把机器人加入目标私聊、群组或频道。
+5. 确认机器人能发送消息。
 
-## 2. 确认目标 `chat_id`
-### 私聊
-1. 在 Telegram 中打开机器人。
-2. 点击 `Start`。
-3. 使用 Telegram API 辅助工具或其他方式查询当前私聊的 `chat_id`。
+`chat_id` 可以是：
+- 数字 ID，例如 `-1001234567890`。
+- 公开频道用户名，例如 `@channel_name`。
 
-### 群组或频道
-1. 把机器人加入群组或频道。
-2. 授予机器人发送消息权限。
-3. 记录群组或频道的 `chat_id`。
-4. 公开频道用户名（如 `@channel_name`）也可以直接使用。
+## 2. `HOOK_CONFIG_JSON`
+最小配置：
 
-## 3. 编写 `HOOK_CONFIG_JSON`
-`HOOK_CONFIG_JSON` 用于声明哪个仓库或组织应该把通知发到哪个 Telegram 目标，以及 GitHub 需要使用哪个签名 Secret。
+```json
+{"gh_webhooks":{"your-name/your-repo":{"chat_id":-1001234567890,"secret":"replace-with-random-secret"}}}
+```
 
-示例：
+多路由配置：
+
 ```json
 {
   "gh_webhooks": {
-    "your-org/your-repo": {
+    "your-name/your-repo": {
       "chat_id": -1001234567890,
-      "secret": "replace-with-a-random-secret"
+      "secret": "repo-secret"
     },
     "your-org": {
       "chat_id": "@your_channel",
-      "secret": "replace-with-another-secret"
+      "secret": "org-secret"
     }
   }
 }
 ```
 
-说明：
-- 键可以是仓库全名，例如 `your-org/your-repo`
-- 键也可以是组织名，例如 `your-org`
-- 如果仓库和组织同时命中，当前实现会优先使用组织级配置
-- `secret` 必须与 GitHub Webhook 页面中的值完全一致
+保存到 GitHub Secrets 时必须压成一行：
 
-## 4. 本地运行
-### 安装依赖
-```bash
-pnpm install
+```json
+{"gh_webhooks":{"your-name/your-repo":{"chat_id":-1001234567890,"secret":"repo-secret"},"your-org":{"chat_id":"@your_channel","secret":"org-secret"}}}
 ```
 
-### 准备本地环境变量
-1. 复制 `.dev.vars.example` 为 `.dev.vars`
-2. 替换 `BOT_TOKEN`
-3. 将 `HOOK_CONFIG_JSON` 改为你的真实配置
+匹配顺序：
+1. 先匹配 `organization.login`。
+2. 再匹配 `repository.full_name`。
 
-示例：
-```dotenv
-BOT_TOKEN=123456:your-real-bot-token
-HOOK_CONFIG_JSON={"gh_webhooks":{"your-org/your-repo":{"chat_id":-1001234567890,"secret":"replace-with-a-random-secret"}}}
+所以组织级配置会覆盖仓库级配置。
+
+## 3. Webhook Secret
+`secret` 不是 Telegram token。它用于校验 GitHub Webhook 签名。
+
+GitHub 发送请求时会用 Webhook 页面填写的 `Secret` 对请求体计算 HMAC-SHA256，并放到 `X-Hub-Signature-256` 请求头。Worker 会用 `HOOK_CONFIG_JSON` 中命中的 `secret` 重新计算并比较。
+
+如果两边不一致，Worker 返回 `403`。
+
+## 4. GitHub Webhook
+在目标仓库或组织中打开：
+
+`Settings -> Webhooks -> Add webhook`
+
+填写：
+
+```text
+Payload URL: https://<worker-name>.<your-subdomain>.workers.dev/
+Content type: application/json
+Secret: repo-secret
+Which events would you like to trigger this webhook?: Send me everything
+Active: checked
 ```
 
-### 启动本地 Worker
-```bash
-pnpm dev
-```
+建议第一次选择 `Send me everything`，确认链路正常后再按需要缩小事件范围。
 
-Wrangler 会启动本地开发服务并输出地址，通常为 `http://127.0.0.1:8787/`。
-
-## 5. 本地验证
-### 运行自动化测试
-```bash
-pnpm test
-```
-
-### 执行类型检查
-```bash
-pnpm typecheck
-```
-
-### 执行打包验证
-```bash
-pnpm build
-```
-
-成功后：
-- `dist/` 会包含 Worker 打包产物
-- `dist/bundle-meta.json` 会记录打包元数据
-
-## 6. 配置 GitHub Webhook
-在目标仓库或组织的 `Settings -> Webhooks -> Add webhook` 中填写：
-- `Payload URL`：Worker 地址，例如 `https://your-worker.workers.dev/`
-- `Content type`：`application/json`
-- `Secret`：必须与 `HOOK_CONFIG_JSON` 中命中的路由一致
-- `Which events would you like to trigger this webhook?`
-  建议先选择 `Send me everything`，验证链路后再收敛
-
-当前支持的事件：
+## 5. 支持事件
+当前会生成 Telegram 消息的事件：
 - `create`
 - `delete`
 - `discussion`
@@ -111,30 +88,40 @@ pnpm build
 - `push`
 - `star`
 
-## 7. 验证线上通知
-1. 打开 GitHub Webhook 页面最近一次投递记录。
-2. 确认 GitHub 返回成功状态。
-3. 打开目标 Telegram 聊天，确认机器人消息已经送达。
-4. 如果 GitHub 返回 `403`，优先检查：
-   - Secret 是否一致
-   - `Content type` 是否为 `application/json`
-   - `HOOK_CONFIG_JSON` 是否包含对应仓库或组织
-5. 如果 GitHub 成功但 Telegram 无消息，优先检查：
-   - 机器人是否已加入目标聊天
-   - 机器人是否有发言权限
-   - `BOT_TOKEN` 是否正确
+不支持的事件不会报错，只会返回没有可发送内容。
 
-## 8. 常见问题
-### `403: Forbidden`
-常见原因：
-- `X-Hub-Signature-256` 校验失败
-- 仓库或组织未命中配置
-- 请求头不符合 GitHub Webhook 规范
+## 6. 本地验证
+本地验证不是 fork 自动部署必需项。
 
-### Worker 部署成功但 Telegram 没消息
-- 检查 Cloudflare 运行时变量是否已生效
-- 检查 Telegram 机器人是否能向目标 `chat_id` 发消息
-- 检查触发的事件是否在支持列表中
+```bash
+pnpm install
+pnpm typecheck
+pnpm test
+pnpm build
+```
 
-### 特殊字符导致消息格式异常
-项目已经对 HTML 特殊字符做转义；如果你扩展了新的格式化逻辑，继续复用 `escapeHtml()` 即可。
+本地运行：
+
+```bash
+cp .dev.vars.example .dev.vars
+pnpm dev
+```
+
+`.dev.vars` 示例：
+
+```dotenv
+BOT_TOKEN=123456:your-real-bot-token
+HOOK_CONFIG_JSON={"gh_webhooks":{"your-name/your-repo":{"chat_id":-1001234567890,"secret":"repo-secret"}}}
+```
+
+不要提交 `.dev.vars`。
+
+## 7. 验证通知
+1. 在 GitHub Webhook 页面打开最新 delivery。
+2. 确认 HTTP 状态成功。
+3. 打开 Telegram，确认收到消息。
+
+常见问题：
+- `403`：Secret 不一致、仓库未命中配置、Content type 不是 JSON。
+- GitHub 成功但 Telegram 无消息：机器人没权限、`BOT_TOKEN` 错误、事件不受支持。
+- 改了 GitHub Secrets 但线上没变：手动运行 deploy workflow，或推送新 tag 重新部署。

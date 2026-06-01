@@ -2,59 +2,114 @@
 
 > English: [deployment-actions.md](deployment-actions.md)
 
-本文档只覆盖 GitHub 侧自动化：checks workflow、deploy workflow、仓库 Secrets 和发布规则。
+本文档只说明 GitHub 侧配置。fork 用户最重要的动作是：填 4 个 repository secrets，然后手动运行发布 workflow 或推送 tag。
 
-## Workflow 文件
-仓库使用两个 workflow 文件：
-
-| Workflow 文件 | 作用 | 触发条件 |
+## Workflow
+| 文件 | 触发条件 | 做什么 |
 | --- | --- | --- |
-| [`.github/workflows/cloudflare-worker-checks.yml`](../.github/workflows/cloudflare-worker-checks.yml) | 安装依赖、类型检查、构建、测试、上传 `dist/` | 分支 `push`、`pull_request`、`workflow_dispatch` |
-| [`.github/workflows/cloudflare-worker-deploy.yml`](../.github/workflows/cloudflare-worker-deploy.yml) | 校验、发布到 Cloudflare，然后同步 Worker Secrets | 仅 tag `push` |
+| [../.github/workflows/cloudflare-worker-checks.yml](../.github/workflows/cloudflare-worker-checks.yml) | 分支 push、Pull Request、手动触发 | 安装依赖、类型检查、构建、测试 |
+| [../.github/workflows/cloudflare-worker-deploy.yml](../.github/workflows/cloudflare-worker-deploy.yml) | 手动触发、Git tag push | 先检查，再发布 Worker，再同步 Worker Secrets |
+| [../.github/workflows/sync-upstream.yml](../.github/workflows/sync-upstream.yml) | 每日定时、手动触发 | 安全时把 fork `main` 快进到上游最新版本 |
 
-## Checks Workflow
-checks workflow 是仓库的 CI 路径，负责：
-- 通过 `pnpm install --frozen-lockfile` 安装依赖
-- 执行 `pnpm typecheck`
-- 执行 `pnpm build`
-- 执行 `pnpm test`
-- 上传 `dist/` 构建产物
+## 必填 Secrets
+进入 fork 仓库：
 
-这个 workflow 必须保持不发布生产环境，这样 PR 和普通 push 都不会误上线。
+`Settings -> Secrets and variables -> Actions -> New repository secret`
 
-## Deploy Workflow
-deploy workflow 是发布路径。它会：
-- 仅在推送 Git tag 时运行
-- 在部署前重新执行类型检查、构建和测试
-- 通过 `pnpm run deploy` 发布 Worker
-- 在代码部署成功后，通过 `wrangler secret put` 把 `BOT_TOKEN` 和 `HOOK_CONFIG_JSON` 同步到 Cloudflare
+逐个添加：
 
-## 必需的 GitHub Secrets
-进入 `Settings -> Secrets and variables -> Actions`，配置：
+| Secret | 来源 | 用途 |
+| --- | --- | --- |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API Token 页面 | `wrangler deploy` 发布 Worker，建议具备 `Account Settings` read 和 `Workers Scripts` edit |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare 账号首页 | 指定部署到哪个账号 |
+| `BOT_TOKEN` | Telegram BotFather | Worker 调用 Telegram Bot API |
+| `HOOK_CONFIG_JSON` | 你自己编写 | Worker 路由 GitHub 仓库或组织到 Telegram 聊天 |
 
-| Secret | 必填 | 用途 | 格式 |
-| --- | --- | --- | --- |
-| `CLOUDFLARE_API_TOKEN` | 是 | 发布时的 Cloudflare API 认证 | 单行字符串 |
-| `CLOUDFLARE_ACCOUNT_ID` | 是 | 指定 Cloudflare 账号 | 单行字符串 |
-| `BOT_TOKEN` | 是 | 发布后同步到 Worker 运行时 | Telegram Token 字符串 |
-| `HOOK_CONFIG_JSON` | 是 | 发布后同步到 Worker 运行时 | 单行 JSON 字符串 |
+`HOOK_CONFIG_JSON` 示例：
 
-模板：
-```dotenv
-CLOUDFLARE_API_TOKEN=replace-with-cloudflare-api-token
-CLOUDFLARE_ACCOUNT_ID=replace-with-cloudflare-account-id
-BOT_TOKEN=123456:replace-with-real-bot-token
-HOOK_CONFIG_JSON={"gh_webhooks":{"your-org/your-repo":{"chat_id":-1001234567890,"secret":"replace-with-random-secret"}}}
+```json
+{"gh_webhooks":{"your-name/your-repo":{"chat_id":-1001234567890,"secret":"replace-with-random-secret"}}}
 ```
 
-## 发布规则
-除非发布模型有意调整，否则建议固定以下规则：
-- 只有 deploy workflow 可以发布到 Cloudflare
-- 只有 tag push 可以上线
-- 部署必须在同一次 workflow 中通过类型检查、构建和测试
-- Secrets 只保存在 GitHub Actions 和 Cloudflare Secret Store 中
+## 发布方式
+部署 workflow 不响应普通提交。你可以手动发布，也可以用 tag 自动发布。
 
-## 注意事项
-- `HOOK_CONFIG_JSON` 在 GitHub Secret 中保持单行，避免 shell 和 YAML 注入问题。
-- checks workflow 只用于校验，不要把它变成隐藏的发布入口。
-- 依赖自动发布前，先完成至少一次手动部署和 webhook 验证。
+### 手动发布
+1. 打开 fork 仓库的 `Actions`。
+2. 选择 `Cloudflare Worker Deploy`。
+3. 点击 `Run workflow`。
+4. 选择发布分支，通常是 `main`。
+5. 点击确认运行。
+
+### tag 自动发布
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+如果要重新发布同一个版本，不建议复用旧 tag。推荐创建新 tag：
+
+```bash
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+## 保持 fork 更新
+`Sync Upstream` workflow 面向 fork 用户，用于自动获取上游修复，减少手动拉取成本。
+
+它每天运行一次，也可以手动启动：
+
+`Actions -> Sync Upstream -> Run workflow`
+
+行为规则：
+- 在上游仓库自身不会执行同步；
+- 会拉取 `AmazingDM/github-webhook-to-telegram`；
+- 当你的 fork 没有本地独有提交时，快进更新 `main`；
+- 如果 fork 已经分叉，拒绝强推覆盖。
+
+如果 push 步骤返回 `403`，打开 fork 仓库的 `Settings -> Actions -> General -> Workflow permissions`，启用 `Read and write permissions`。
+
+## Workflow 内部顺序
+部署 workflow 会按顺序执行：
+1. `pnpm install --frozen-lockfile`
+2. `pnpm typecheck`
+3. `pnpm build`
+4. `pnpm test`
+5. `pnpm run deploy`
+6. `wrangler secret put BOT_TOKEN`
+7. `wrangler secret put HOOK_CONFIG_JSON`
+
+任何一步失败都会停止部署。
+
+## 常见错误
+### `ERR_PNPM_OUTDATED_LOCKFILE`
+`package.json` 和 `pnpm-lock.yaml` 不一致。解决方式：
+
+```bash
+pnpm install --lockfile-only
+```
+
+然后提交更新后的 `pnpm-lock.yaml`。
+
+### `ERR_PNPM_CANNOT_DEPLOY`
+说明命令写成了 `pnpm deploy`。正确命令是：
+
+```bash
+pnpm run deploy
+```
+
+### Cloudflare 认证失败
+检查：
+- `CLOUDFLARE_API_TOKEN` 是否填错。
+- `CLOUDFLARE_ACCOUNT_ID` 是否填错。
+- API Token 是否有发布 Workers 的权限。
+
+### 同步 workflow 拒绝更新
+说明你的 fork 有上游不存在的提交。手动 merge 或 rebase 上游，推送解决后的 `main`，然后重新运行 `Sync Upstream`。
+
+## 安全规则
+- 不要把 token 写进代码、文档或 `.dev.vars` 后提交。
+- 不要在普通分支 push 中发布生产环境。
+- 用手动 deploy workflow 或 tag push 触发发布。
+- 上游同步 workflow 只做快进更新，不能覆盖 fork 自己的提交。

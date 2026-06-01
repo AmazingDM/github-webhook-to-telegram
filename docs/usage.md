@@ -2,104 +2,81 @@
 
 > Simplified Chinese: [usage.zh-CN.md](usage.zh-CN.md)
 
-This guide follows the typical setup order for the project: Telegram bot, webhook routing, local validation, and production verification.
+This guide explains the runtime configuration: Telegram, `HOOK_CONFIG_JSON`, and GitHub Webhook values. For deployment, see [deployment.md](deployment.md).
 
-## 1. Create a Telegram Bot
-1. Open [BotFather](https://t.me/BotFather).
+## 1. Telegram Bot
+1. Open [BotFather](https://t.me/BotFather) in Telegram.
 2. Send `/newbot`.
-3. Follow the prompts to choose a bot name and username.
-4. Save the token returned by BotFather. This is your `BOT_TOKEN`.
+3. Save the returned token as `BOT_TOKEN`.
+4. Add the bot to the target private chat, group, or channel.
+5. Confirm the bot can send messages.
 
-## 2. Identify the Target `chat_id`
-### Private chat
-1. Open the bot in Telegram.
-2. Click `Start`.
-3. Use a Telegram API helper or another tool to look up the private `chat_id`.
+`chat_id` may be:
+- a numeric ID, such as `-1001234567890`;
+- a public channel username, such as `@channel_name`.
 
-### Group or channel
-1. Add the bot to the group or channel.
-2. Grant the bot permission to send messages.
-3. Record the group or channel `chat_id`.
-4. Public channel usernames such as `@channel_name` are also supported.
+## 2. `HOOK_CONFIG_JSON`
+Minimal configuration:
 
-## 3. Write `HOOK_CONFIG_JSON`
-`HOOK_CONFIG_JSON` declares which repository or organization should send notifications to which Telegram destination, and which secret GitHub must use.
+```json
+{"gh_webhooks":{"your-name/your-repo":{"chat_id":-1001234567890,"secret":"replace-with-random-secret"}}}
+```
 
-Example:
+Multiple routes:
+
 ```json
 {
   "gh_webhooks": {
-    "your-org/your-repo": {
+    "your-name/your-repo": {
       "chat_id": -1001234567890,
-      "secret": "replace-with-a-random-secret"
+      "secret": "repo-secret"
     },
     "your-org": {
       "chat_id": "@your_channel",
-      "secret": "replace-with-another-secret"
+      "secret": "org-secret"
     }
   }
 }
 ```
 
-Notes:
-- keys can be repository full names such as `your-org/your-repo`
-- keys can also be organization names such as `your-org`
-- if both repository and organization match, the current implementation prefers the organization-level configuration
-- the `secret` value must exactly match the GitHub webhook form value
+When saving it as a GitHub secret, keep it on one line:
 
-## 4. Run Locally
-### Install dependencies
-```bash
-pnpm install
+```json
+{"gh_webhooks":{"your-name/your-repo":{"chat_id":-1001234567890,"secret":"repo-secret"},"your-org":{"chat_id":"@your_channel","secret":"org-secret"}}}
 ```
 
-### Prepare local environment variables
-1. Copy `.dev.vars.example` to `.dev.vars`
-2. Replace `BOT_TOKEN`
-3. Replace `HOOK_CONFIG_JSON` with your own values
+Matching order:
+1. `organization.login`
+2. `repository.full_name`
 
-Example:
-```dotenv
-BOT_TOKEN=123456:your-real-bot-token
-HOOK_CONFIG_JSON={"gh_webhooks":{"your-org/your-repo":{"chat_id":-1001234567890,"secret":"replace-with-a-random-secret"}}}
+Organization routes override repository routes.
+
+## 3. Webhook Secret
+`secret` is not the Telegram token. It verifies GitHub Webhook signatures.
+
+GitHub signs the raw request body with the `Secret` from the Webhook page and sends the result in `X-Hub-Signature-256`. The Worker recalculates the signature with the matched `secret` from `HOOK_CONFIG_JSON`.
+
+If the values do not match, the Worker returns `403`.
+
+## 4. GitHub Webhook
+In the target repository or organization, open:
+
+`Settings -> Webhooks -> Add webhook`
+
+Use:
+
+```text
+Payload URL: https://<worker-name>.<your-subdomain>.workers.dev/
+Content type: application/json
+Secret: repo-secret
+Which events would you like to trigger this webhook?: Send me everything
+Active: checked
 ```
 
-### Start the local Worker
-```bash
-pnpm dev
-```
+Start with `Send me everything`. After the end-to-end path works, reduce the event list if needed.
 
-Wrangler starts a local development server and prints the local URL, usually `http://127.0.0.1:8787/`.
-
-## 5. Validate Locally
-### Run automated tests
-```bash
-pnpm test
-```
-
-### Run type checking
-```bash
-pnpm typecheck
-```
-
-### Run bundle validation
-```bash
-pnpm build
-```
-
-On success:
-- `dist/` contains the bundled Worker output
-- `dist/bundle-meta.json` records bundle metadata
-
-## 6. Configure the GitHub Webhook
-Open `Settings -> Webhooks -> Add webhook` on the target repository or organization, then fill in:
-- `Payload URL`: your Worker URL, for example `https://your-worker.workers.dev/`
-- `Content type`: `application/json`
-- `Secret`: must match the selected route in `HOOK_CONFIG_JSON`
-- `Which events would you like to trigger this webhook?`
-  Start with `Send me everything`, then narrow it after validation if needed.
-
-Supported events:
+## 5. Supported Events
+Events that produce Telegram messages:
 - `create`
 - `delete`
 - `discussion`
@@ -111,30 +88,40 @@ Supported events:
 - `push`
 - `star`
 
-## 7. Verify Production Delivery
-1. Open the latest delivery in the GitHub webhook page.
-2. Confirm GitHub reports a successful response.
-3. Open the target Telegram chat and confirm the bot message arrived.
-4. If GitHub returns `403`, check:
-   - whether the secret matches
-   - whether `Content type` is `application/json`
-   - whether the repository or organization exists in `HOOK_CONFIG_JSON`
-5. If GitHub succeeds but Telegram is silent, check:
-   - whether the bot has joined the target chat
-   - whether the bot can speak there
-   - whether `BOT_TOKEN` is correct
+Unsupported events do not fail the request. They return no message to send.
 
-## 8. Common Issues
-### `403: Forbidden`
-Usually caused by:
-- failed `X-Hub-Signature-256` validation
-- missing repository or organization route
-- headers that do not match GitHub webhook expectations
+## 6. Local Verification
+Local checks are optional for fork-based deployment.
 
-### Worker deploys but no Telegram message arrives
-- verify Cloudflare runtime variables are present
-- verify the Telegram bot can send to the target `chat_id`
-- verify the triggered event is in the supported list
+```bash
+pnpm install
+pnpm typecheck
+pnpm test
+pnpm build
+```
 
-### Special characters break message rendering
-The project already escapes HTML-sensitive characters. If you add new formatting logic, continue to reuse `escapeHtml()`.
+Run locally:
+
+```bash
+cp .dev.vars.example .dev.vars
+pnpm dev
+```
+
+Example `.dev.vars`:
+
+```dotenv
+BOT_TOKEN=123456:your-real-bot-token
+HOOK_CONFIG_JSON={"gh_webhooks":{"your-name/your-repo":{"chat_id":-1001234567890,"secret":"repo-secret"}}}
+```
+
+Do not commit `.dev.vars`.
+
+## 7. Verify Notifications
+1. Open the latest delivery in the GitHub Webhook page.
+2. Confirm the HTTP status is successful.
+3. Open Telegram and confirm the message arrived.
+
+Common issues:
+- `403`: mismatched secret, unmatched repository, or non-JSON content type.
+- GitHub succeeds but Telegram is silent: bot permissions, wrong `BOT_TOKEN`, or unsupported event.
+- GitHub secrets changed but production did not: run the deploy workflow manually, or push a new tag to redeploy.

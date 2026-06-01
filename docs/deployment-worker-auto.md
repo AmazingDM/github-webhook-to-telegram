@@ -1,32 +1,20 @@
-# Cloudflare Worker Deployment Guide
+# Cloudflare Worker Deployment
 
 > Simplified Chinese: [deployment-worker-auto.zh-CN.md](deployment-worker-auto.zh-CN.md)
 
-This document focuses on the Worker side: Wrangler, Cloudflare runtime configuration, webhook callback values, and production troubleshooting.
+This page explains the Cloudflare side. The recommended flow is GitHub Actions deployment. You do not need to paste code manually in the Cloudflare dashboard.
 
-## Scope
-The project is deployed as a Cloudflare Worker with the following core files and commands:
-- configuration: [wrangler.toml](../wrangler.toml)
-- build Node.js version: [.node-version](../.node-version)
-- entrypoint: [src/index.ts](../src/index.ts)
-- local development: `pnpm dev`
-- bundle validation: `pnpm build`
-- production deployment: `pnpm run deploy`
-- automated release workflow: [`.github/workflows/cloudflare-worker-deploy.yml`](../.github/workflows/cloudflare-worker-deploy.yml)
+## Key Files
+| File | Purpose |
+| --- | --- |
+| [../wrangler.toml](../wrangler.toml) | Worker name, entrypoint, compatibility date |
+| [../.node-version](../.node-version) | Node.js major version for GitHub/Cloudflare builds |
+| [../src/index.ts](../src/index.ts) | Worker entrypoint |
+| [../.github/workflows/cloudflare-worker-deploy.yml](../.github/workflows/cloudflare-worker-deploy.yml) | manual release and automatic tag release workflow |
+| [../.github/workflows/sync-upstream.yml](../.github/workflows/sync-upstream.yml) | daily safe upstream sync for forks |
 
-## Prerequisites
-Before deploying, prepare:
-
-| Item | Required | Notes |
-| --- | --- | --- |
-| Cloudflare account | yes | hosts the Worker |
-| Wrangler login or API token | yes | needed for manual or automated deployment |
-| `BOT_TOKEN` | yes | Telegram bot token |
-| `HOOK_CONFIG_JSON` | yes | repository / organization routing map |
-| GitHub webhook secret | yes | must match the selected route secret |
-
-## Confirm `wrangler.toml`
-At minimum, confirm these fields in [wrangler.toml](../wrangler.toml):
+## `wrangler.toml`
+Default configuration:
 
 ```toml
 name = "github-webhook-to-telegram"
@@ -34,99 +22,72 @@ main = "src/index.ts"
 compatibility_date = "2026-03-08"
 ```
 
-Verify before release:
-- `name` matches your Worker naming convention
-- `main` still points to the Worker entrypoint
-- `compatibility_date` is intentionally pinned
-- `.node-version` matches the Node.js version required by `package.json`
+After forking, you usually only need to decide whether to change `name`. If you keep the default, the Worker URL includes `github-webhook-to-telegram`.
 
-## Runtime Variable Formats
-The Worker reads only:
+## Worker Secrets
+After `pnpm run deploy` succeeds, the deploy workflow syncs two Worker secrets:
 - `BOT_TOKEN`
 - `HOOK_CONFIG_JSON`
 
-### Local `.dev.vars`
-```dotenv
-BOT_TOKEN=123456:replace-with-real-bot-token
-HOOK_CONFIG_JSON={"gh_webhooks":{"your-org/your-repo":{"chat_id":-1001234567890,"secret":"replace-with-random-secret"}}}
-```
+You do not need to create them manually in the Cloudflare dashboard. They come from GitHub Actions secrets in your fork.
 
-### Cloudflare Secret Values
-`BOT_TOKEN`
-```text
-123456:replace-with-real-bot-token
-```
-
-`HOOK_CONFIG_JSON`
-```json
-{"gh_webhooks":{"your-org/your-repo":{"chat_id":-1001234567890,"secret":"replace-with-random-secret"},"your-org":{"chat_id":"@your_channel","secret":"replace-with-another-secret"}}}
-```
-
-Store `HOOK_CONFIG_JSON` as a single-line JSON string without comments or Markdown wrappers.
-
-## GitHub Actions Secret Sync
-The current automated deploy workflow runs only on Git tag pushes. After `pnpm run deploy`, it syncs these values into the Worker:
-- `BOT_TOKEN`
-- `HOOK_CONFIG_JSON`
-
-That means the GitHub Actions secrets must stay aligned with the production Worker configuration, and any secret change is only reflected after the sync step completes.
-
-## Recommended `HOOK_CONFIG_JSON`
-Readable form:
-```json
-{
-  "gh_webhooks": {
-    "your-org/your-repo": {
-      "chat_id": -1001234567890,
-      "secret": "replace-with-random-secret"
-    },
-    "your-org": {
-      "chat_id": "@your_channel",
-      "secret": "replace-with-another-secret"
-    }
-  }
-}
-```
-
-Matching behavior:
-- keys may be repository full names such as `your-org/your-repo`
-- keys may be organization names such as `your-org`
-- organization-level matches are evaluated before repository-level matches
-
-## GitHub Webhook Form Values
-After deployment, configure `Settings -> Webhooks -> Add webhook`:
+## Webhook URL
+After deployment, the Cloudflare Worker URL usually looks like:
 
 ```text
-Payload URL: https://<your-worker>.<your-subdomain>.workers.dev/
+https://<worker-name>.<your-subdomain>.workers.dev/
+```
+
+Use this as the GitHub Webhook `Payload URL`.
+
+## GitHub Webhook Values
+In the target repository or organization, open:
+
+`Settings -> Webhooks -> Add webhook`
+
+Use:
+
+```text
+Payload URL: https://<worker-name>.<your-subdomain>.workers.dev/
 Content type: application/json
 Secret: replace-with-random-secret
 Which events would you like to trigger this webhook?: Send me everything
 Active: checked
 ```
 
-## Recommended Rollout Sequence
-1. Run `pnpm build` locally.
-2. Run one manual `pnpm run deploy` release.
-3. Fill in GitHub webhook settings and verify an end-to-end delivery.
-4. Push a release tag to use the deploy workflow for repeatable production releases after the manual flow is proven.
+`Secret` must match the selected route `secret` in `HOOK_CONFIG_JSON`.
+
+## Recommended Rollout
+1. Fork the repository.
+2. Add GitHub Actions secrets.
+3. Run `Cloudflare Worker Deploy` manually, or push a tag to deploy.
+4. Wait for the `Cloudflare Worker Deploy` workflow to succeed.
+5. Copy the Worker URL.
+6. Add the GitHub Webhook.
+7. Verify with the `ping` delivery in the Webhook page.
+
+Upstream sync does not deploy by itself. After a sync, normal branch pushes only run checks; deploy again manually or with a new tag when you want production updated.
 
 ## Troubleshooting
-### GitHub returns `403`
-Check:
-- the webhook `Secret` matches the selected route
-- the repository or organization exists in `HOOK_CONFIG_JSON`
-- `Content-Type` is `application/json`
+### GitHub Actions deployment fails
+Start from the failed step:
+- install failed: check whether `pnpm-lock.yaml` matches `package.json`;
+- typecheck/test/build failed: fix code or dependency errors from the log;
+- deploy failed: check Cloudflare API token and Account ID;
+- secret sync failed: check Cloudflare API token permissions.
 
-### GitHub succeeds but Telegram is silent
+### GitHub Webhook returns `403`
 Check:
-- the bot has joined the target chat
-- the bot can send messages there
-- `BOT_TOKEN` is correct
-- the event type is supported
+- Webhook `Secret` equals the selected `secret` in `HOOK_CONFIG_JSON`;
+- Webhook `Content type` is `application/json`;
+- `HOOK_CONFIG_JSON` includes the target repository full name or organization name.
 
-### The Worker throws configuration errors
+### GitHub Webhook succeeds but Telegram is silent
 Check:
-- `HOOK_CONFIG_JSON` is valid JSON
-- the object includes `gh_webhooks`
-- `chat_id` values are valid strings or numbers
-- `secret` values are non-empty strings
+- the bot has joined the target chat;
+- the bot can send messages there;
+- `BOT_TOKEN` belongs to the correct bot;
+- the event type is supported.
+
+### Secrets changed but production did not change
+Changing GitHub Actions secrets does not automatically update the Worker. Run the deploy workflow manually, or push a new tag, so the workflow syncs the new values to Cloudflare Worker.

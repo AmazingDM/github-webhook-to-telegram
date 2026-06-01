@@ -2,77 +2,83 @@
 
 > Simplified Chinese: [README.zh-CN.md](README.zh-CN.md)
 
-A Cloudflare Workers service that receives GitHub webhooks and forwards supported events to Telegram chats.
+This Cloudflare Workers service receives GitHub webhooks, verifies their signatures, and forwards supported events to Telegram.
 
-The current codebase is a TypeScript/Workers rewrite of the original Python `aiohttp` implementation. The goal is to preserve the original behavior while providing a cleaner serverless deployment model, test coverage, and open-source project documentation.
+The recommended path is: fork this repository, add the required GitHub Actions secrets, then deploy to Cloudflare Worker either by manually running the workflow or by pushing a Git tag.
 
-Upstream repository: [dashezup/github-webhook-to-telegram](https://github.com/dashezup/github-webhook-to-telegram)
+## Quick Deployment
+1. Fork this repository to your GitHub account.
+2. Create a Telegram bot and add it to the target chat.
+3. Prepare a Cloudflare API token and Account ID.
+4. In your fork, open `Settings -> Secrets and variables -> Actions -> New repository secret`.
+5. Add these 4 secrets:
 
-## Features
-- Accept GitHub webhook requests on `POST /`
-- Verify `X-Hub-Signature-256` signatures before processing payloads
-- Route notifications by repository full name or organization name
-- Render supported GitHub events as structured Telegram HTML messages
-- Deliver messages through the Telegram Bot API
+| Secret | Purpose |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API token used to deploy the Worker |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Account ID |
+| `BOT_TOKEN` | Telegram bot token |
+| `HOOK_CONFIG_JSON` | Repository or organization routing JSON |
 
-## Project Layout
-- `src/`: Worker source code
-- `src/formatters/`: event-specific notification templates and shared formatting helpers
-- `test/`: Vitest test suite
-- `docs/`: architecture, usage, deployment, migration, and reference docs
-- `config_sample.json`: sample `HOOK_CONFIG_JSON` payload
-- `.dev.vars.example`: local development environment example
+`HOOK_CONFIG_JSON` must be a single-line JSON string, for example:
 
-## Requirements
-- Node.js 24+
-- pnpm 10.33.3
-- A Cloudflare account with Wrangler access
-- A Telegram bot token
+```json
+{"gh_webhooks":{"your-name/your-repo":{"chat_id":-1001234567890,"secret":"replace-with-random-secret"}}}
+```
 
-## Quick Start
-1. Install dependencies: `pnpm install`
-2. Copy `.dev.vars.example` to `.dev.vars`
-3. Fill in `BOT_TOKEN` and `HOOK_CONFIG_JSON`
-4. Start local development: `pnpm dev`
-5. Follow the full setup guide in [docs/usage.md](docs/usage.md)
-6. Use [docs/deployment.md](docs/deployment.md) for deployment paths and release prerequisites
+6. If you want a different Worker name, edit `name` in [wrangler.toml](wrangler.toml).
+7. Choose one release method:
 
-## Runtime Configuration
-The Worker reads two required runtime variables. For the full structure and matching rules, see [docs/input-parameters.md](docs/input-parameters.md).
+Manual release: open `Actions -> Cloudflare Worker Deploy -> Run workflow`.
 
-- `BOT_TOKEN`
-  Telegram bot token created with [BotFather](https://t.me/BotFather).
-- `HOOK_CONFIG_JSON`
-  A single JSON string that maps repositories or organizations to Telegram targets.
+Automatic tag release:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+8. After deployment, add a webhook to the GitHub repository or organization you want to watch:
+
+```text
+Payload URL: https://<your-worker>.<your-subdomain>.workers.dev/
+Content type: application/json
+Secret: must match the selected secret in HOOK_CONFIG_JSON
+Events: Send me everything
+Active: checked
+```
+
+See [docs/deployment.md](docs/deployment.md) for the complete walkthrough.
+
+## Local Checks
+Local development is optional for deployment, but useful before changing the fork:
+
+```bash
+pnpm install
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+Run the Worker locally:
+
+```bash
+cp .dev.vars.example .dev.vars
+pnpm dev
+```
 
 ## Documentation
-English documentation:
-- [Usage Guide](docs/usage.md)
-- [Deployment Overview](docs/deployment.md)
-- [GitHub Actions Deployment Guide](docs/deployment-actions.md)
-- [Cloudflare Worker Deployment Guide](docs/deployment-worker-auto.md)
-- [Input Parameters Reference](docs/input-parameters.md)
-- [Architecture Overview](docs/architecture.md)
-- [Migration Guide](docs/migration.md)
-- [Changelog](docs/changelog.md)
+- [Deployment Overview](docs/deployment.md): complete fork-to-production path.
+- [GitHub Actions Deployment](docs/deployment-actions.md): secrets, manual releases, tag releases, and workflow behavior.
+- [Worker Configuration](docs/deployment-worker-auto.md): Cloudflare, Wrangler, webhook values, and troubleshooting.
+- [Usage Guide](docs/usage.md): Telegram, `HOOK_CONFIG_JSON`, and webhook verification.
+- [Changelog](docs/changelog.md): major project changes.
 
-Chinese documentation:
-- [使用教程](docs/usage.zh-CN.md)
-- [部署总览](docs/deployment.zh-CN.md)
-- [GitHub Actions 部署说明](docs/deployment-actions.zh-CN.md)
-- [Cloudflare Worker 自动部署说明](docs/deployment-worker-auto.zh-CN.md)
-- [传入参数说明](docs/input-parameters.zh-CN.md)
-- [架构说明](docs/architecture.zh-CN.md)
-- [迁移说明](docs/migration.zh-CN.md)
-- [更新记录](docs/changelog.zh-CN.md)
+## Fork Updates
+Forks include a daily `Sync Upstream` workflow. It fast-forwards your `main` branch to the upstream repository when there are no local fork-only commits. If your fork has diverged, the workflow stops instead of overwriting your changes; merge upstream manually, then rerun the workflow.
 
-## Testing Coverage
-The test suite currently covers:
-- environment configuration parsing and route matching
-- GitHub header validation and signature checks
-- notification formatting behavior
-- Telegram API success and failure handling
-- Worker responses for `404`, `405`, `403`, and successful webhook requests
+## Supported Events
+`create`, `delete`, `discussion`, `fork`, `issues`, `ping`, `public`, `pull_request`, `push`, `star`
 
 ## License
-This project remains licensed under AGPL-3.0-or-later. See [LICENSE](LICENSE) for details.
+AGPL-3.0-or-later. See [LICENSE](LICENSE).

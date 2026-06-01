@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "*"
+  workflow_dispatch:
 
 concurrency:
   group: cloudflare-worker-deploy-${{ github.ref }}
