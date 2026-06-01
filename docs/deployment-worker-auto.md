@@ -11,7 +11,7 @@ The project is deployed as a Cloudflare Worker with the following core files and
 - entrypoint: [src/index.ts](../src/index.ts)
 - local development: `pnpm dev`
 - bundle validation: `pnpm build`
-- production deployment: `pnpm deploy`
+- production deployment: `pnpm run deploy`
 - automated release workflow: [`.github/workflows/cloudflare-worker-deploy.yml`](../.github/workflows/cloudflare-worker-deploy.yml)
 
 ## Prerequisites
@@ -65,7 +65,7 @@ HOOK_CONFIG_JSON={"gh_webhooks":{"your-org/your-repo":{"chat_id":-1001234567890,
 Store `HOOK_CONFIG_JSON` as a single-line JSON string without comments or Markdown wrappers.
 
 ## GitHub Actions Secret Sync
-The current automated deploy workflow runs only on Git tag pushes. After `pnpm deploy`, it syncs these values into the Worker:
+The current automated deploy workflow runs only on Git tag pushes. After `pnpm run deploy`, it syncs these values into the Worker:
 - `BOT_TOKEN`
 - `HOOK_CONFIG_JSON`
 
@@ -106,7 +106,7 @@ Active: checked
 
 ## Recommended Rollout Sequence
 1. Run `pnpm build` locally.
-2. Run one manual `pnpm deploy` release.
+2. Run one manual `pnpm run deploy` release.
 3. Fill in GitHub webhook settings and verify an end-to-end delivery.
 4. Push a release tag to use the deploy workflow for repeatable production releases after the manual flow is proven.
 

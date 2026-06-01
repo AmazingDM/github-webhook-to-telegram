@@ -26,7 +26,7 @@ This workflow must stay release-free so pull requests and normal pushes never pu
 The deploy workflow is the release path. It:
 - runs only when a Git tag is pushed
 - repeats type check, build, and test before deployment
-- publishes the Worker with `pnpm deploy`
+- publishes the Worker with `pnpm run deploy`
 - then syncs `BOT_TOKEN` and `HOOK_CONFIG_JSON` to Cloudflare with `wrangler secret put`
 
 ## Required GitHub Secrets

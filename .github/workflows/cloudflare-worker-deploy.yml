@@ -57,7 +57,7 @@ jobs:
         run: pnpm test
 
       - name: Deploy Worker
-        run: pnpm deploy
+        run: pnpm run deploy
 
       - name: Sync Worker secrets
         shell: bash
