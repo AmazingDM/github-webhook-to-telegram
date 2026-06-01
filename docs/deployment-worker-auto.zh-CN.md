@@ -7,6 +7,7 @@
 ## 作用范围
 项目以 Cloudflare Worker 形式部署，核心文件与命令如下：
 - 配置文件：[wrangler.toml](../wrangler.toml)
+- 构建 Node.js 版本：[.node-version](../.node-version)
 - 入口文件：[src/index.ts](../src/index.ts)
 - 本地开发：`pnpm dev`
 - 打包校验：`pnpm build`
@@ -37,6 +38,7 @@ compatibility_date = "2026-03-08"
 - `name` 符合你的 Worker 命名规则
 - `main` 仍然指向当前入口
 - `compatibility_date` 是有意固定的
+- `.node-version` 与 `package.json` 要求的 Node.js 版本一致
 
 ## 运行时变量格式
 Worker 只读取：

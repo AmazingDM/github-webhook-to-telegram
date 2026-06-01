@@ -7,6 +7,7 @@ This document focuses on the Worker side: Wrangler, Cloudflare runtime configura
 ## Scope
 The project is deployed as a Cloudflare Worker with the following core files and commands:
 - configuration: [wrangler.toml](../wrangler.toml)
+- build Node.js version: [.node-version](../.node-version)
 - entrypoint: [src/index.ts](../src/index.ts)
 - local development: `pnpm dev`
 - bundle validation: `pnpm build`
@@ -37,6 +38,7 @@ Verify before release:
 - `name` matches your Worker naming convention
 - `main` still points to the Worker entrypoint
 - `compatibility_date` is intentionally pinned
+- `.node-version` matches the Node.js version required by `package.json`
 
 ## Runtime Variable Formats
 The Worker reads only:
