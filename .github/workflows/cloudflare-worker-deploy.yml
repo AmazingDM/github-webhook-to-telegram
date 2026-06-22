@@ -24,7 +24,7 @@ jobs:
       HOOK_CONFIG_JSON: ${{ secrets.HOOK_CONFIG_JSON }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
