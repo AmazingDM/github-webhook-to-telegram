@@ -1,0 +1,10 @@
+packages:
+  - .
+
+overrides:
+  undici: 7.29.0
+
+onlyBuiltDependencies:
+  - esbuild
+  - sharp
+  - workerd
