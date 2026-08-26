@@ -1,57 +1,112 @@
 # GitHub Webhook to Telegram
 
+> Forward GitHub repository and organization events to Telegram. Runs on **Cloudflare Workers** — no VPS, no always-on process.
+
+[![License: AGPL-3.0](https://img.shields.io/github/license/AmazingDM/github-webhook-to-telegram)](LICENSE)
+[![CI](https://github.com/AmazingDM/github-webhook-to-telegram/actions/workflows/cloudflare-worker-checks.yml/badge.svg)](https://github.com/AmazingDM/github-webhook-to-telegram/actions/workflows/cloudflare-worker-checks.yml)
+
 > Simplified Chinese: [README.zh-CN.md](README.zh-CN.md)
 
-This Cloudflare Workers service receives GitHub webhooks, verifies their signatures, and forwards supported events to Telegram.
+![Telegram notifications for push and branch deletion](images/telegram-preview.png)
 
-The recommended path is: fork this repository, add the required GitHub Actions secrets, then deploy to Cloudflare Worker either by manually running the workflow or by pushing a Git tag.
+The screenshot is a real delivery from this repository: a `push` with commit details, then a `delete` after the Dependabot branch was removed.
 
-## Quick Deployment
-1. Fork this repository to your GitHub account.
-2. Create a Telegram bot and add it to the target chat.
-3. Prepare a Cloudflare API token and Account ID.
-4. In your fork, open `Settings -> Secrets and variables -> Actions -> New repository secret`.
-5. Add these 4 secrets:
+The Worker accepts GitHub webhooks on `POST /`, verifies `X-Hub-Signature-256`, routes by repository or organization, and sends an HTML message to Telegram.
+
+Recommended path: **fork this repository**, add four GitHub Actions secrets, then deploy with the bundled workflow. You do not need to create the Worker by hand in the Cloudflare dashboard.
+
+## Why this
+
+- **No server to keep running.** Only Cloudflare Workers is used (no KV, D1, R2, or Durable Objects). Typical webhook volume fits the Workers free tier.
+- **Fork and deploy.** Fill secrets, then run `Cloudflare Worker Deploy` or push a Git tag.
+- **One Worker, many targets.** `HOOK_CONFIG_JSON` maps `owner/repo` or an organization login to different chats and webhook secrets.
+- **Signature required.** Requests without a matching HMAC are rejected with `403`.
+- **Forks stay current.** The daily `Sync Upstream` workflow fast-forwards `main` when you have no fork-only commits.
+
+**Not this project:** it is not a Telegram bot you chat with, and it does not speak GitLab. Unsupported GitHub events still pass signature checks, then produce no Telegram message.
+
+```mermaid
+flowchart LR
+  GitHub -->|POST / + HMAC| Worker
+  Worker -->|sendMessage HTML| Telegram
+```
+
+## Supported events
+
+Labels below match `EVENT_META` in `src/formatters/shared.ts`.
+
+| Event | Telegram title |
+| --- | --- |
+| `create` | Reference Created |
+| `delete` | Reference Deleted |
+| `discussion` | Discussion Activity |
+| `fork` | Repository Forked |
+| `issues` | Issue Activity |
+| `ping` | Webhook Ping |
+| `public` | Repository Public |
+| `pull_request` | Pull Request Activity |
+| `push` | Push Update |
+| `star` | Stars Updated |
+
+## Deploy
+
+You need a [Telegram bot](https://t.me/BotFather) that can send to the target chat, a Cloudflare account (Account ID + a token that can edit Workers Scripts), and a GitHub repository or organization to watch.
+
+1. Fork this repository and enable Actions on the fork.
+2. Add these secrets under `Settings -> Secrets and variables -> Actions`:
 
 | Secret | Purpose |
 | --- | --- |
-| `CLOUDFLARE_API_TOKEN` | Cloudflare API token used to deploy the Worker |
+| `CLOUDFLARE_API_TOKEN` | Token used by the deploy workflow |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Account ID |
 | `BOT_TOKEN` | Telegram bot token |
-| `HOOK_CONFIG_JSON` | Repository or organization routing JSON |
-
-`HOOK_CONFIG_JSON` must be a single-line JSON string, for example:
+| `HOOK_CONFIG_JSON` | Routing JSON (must be one line) |
 
 ```json
 {"gh_webhooks":{"your-name/your-repo":{"chat_id":-1001234567890,"secret":"replace-with-random-secret"}}}
 ```
 
-6. If you want a different Worker name, edit `name` in [wrangler.toml](wrangler.toml).
-7. Choose one release method:
+`chat_id` may be a numeric ID (`-1001234567890`) or a public channel username (`@channel_name`). To rename the Worker, edit `name` in [wrangler.toml](wrangler.toml) (default: `github-webhook-to-telegram`).
 
-Manual release: open `Actions -> Cloudflare Worker Deploy -> Run workflow`.
+3. Deploy, then point GitHub at the Worker:
 
-Automatic tag release:
-
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-8. After deployment, add a webhook to the GitHub repository or organization you want to watch:
+- Manual: `Actions -> Cloudflare Worker Deploy -> Run workflow`
+- Tag: `git tag v1.0.0 && git push origin v1.0.0`
 
 ```text
-Payload URL: https://<your-worker>.<your-subdomain>.workers.dev/
+Payload URL: https://<worker-name>.<your-subdomain>.workers.dev/
 Content type: application/json
 Secret: must match the selected secret in HOOK_CONFIG_JSON
 Events: Send me everything
 Active: checked
 ```
 
-See [docs/deployment.md](docs/deployment.md) for the complete walkthrough.
+Start with **Send me everything**. After a delivery succeeds, you can narrow the event list. Full walkthrough: [docs/deployment.md](docs/deployment.md).
 
-## Local Checks
-Local development is optional for deployment, but useful before changing the fork:
+## Configuration
+
+Matching order (first hit wins): `organization.login`, then `repository.full_name`. An organization route therefore overrides a repository route.
+
+```json
+{
+  "gh_webhooks": {
+    "your-name/your-repo": {
+      "chat_id": -1001234567890,
+      "secret": "repo-secret"
+    },
+    "your-org": {
+      "chat_id": "@your_channel",
+      "secret": "org-secret"
+    }
+  }
+}
+```
+
+`secret` is the GitHub webhook secret, not `BOT_TOKEN`. A mismatch returns `403`. See [docs/usage.md](docs/usage.md).
+
+## Local development
+
+Local work is optional for the fork deploy path. Requires **Node.js 24+** and **pnpm 10**.
 
 ```bash
 pnpm install
@@ -60,25 +115,23 @@ pnpm test
 pnpm build
 ```
 
-Run the Worker locally:
-
 ```bash
 cp .dev.vars.example .dev.vars
 pnpm dev
 ```
 
+The Worker only accepts `POST /`. Other paths return `404`; other methods return `405`. Do not commit `.dev.vars`.
+
 ## Documentation
-- [Deployment Overview](docs/deployment.md): complete fork-to-production path.
-- [GitHub Actions Deployment](docs/deployment-actions.md): secrets, manual releases, tag releases, and workflow behavior.
-- [Worker Configuration](docs/deployment-worker-auto.md): Cloudflare, Wrangler, webhook values, and troubleshooting.
-- [Usage Guide](docs/usage.md): Telegram, `HOOK_CONFIG_JSON`, and webhook verification.
-- [Changelog](docs/changelog.md): major project changes.
 
-## Fork Updates
-Forks include a daily `Sync Upstream` workflow. It fast-forwards your `main` branch to the upstream repository when there are no local fork-only commits. If your fork has diverged, the workflow stops instead of overwriting your changes; merge upstream manually, then rerun the workflow.
+- [Deployment Overview](docs/deployment.md) — fork to production
+- [GitHub Actions Deployment](docs/deployment-actions.md) — secrets, manual and tag releases
+- [Worker Configuration](docs/deployment-worker-auto.md) — Cloudflare, Wrangler, troubleshooting
+- [Usage Guide](docs/usage.md) — Telegram, `HOOK_CONFIG_JSON`, verification
+- [Changelog](docs/changelog.md)
 
-## Supported Events
-`create`, `delete`, `discussion`, `fork`, `issues`, `ping`, `public`, `pull_request`, `push`, `star`
+Forks: `Sync Upstream` runs daily. If your `main` has diverged, the workflow stops instead of overwriting; merge upstream, then rerun.
 
 ## License
-AGPL-3.0-or-later. See [LICENSE](LICENSE).
+
+AGPL-3.0-or-later. See [LICENSE](LICENSE). Bugs and questions: [Issues](https://github.com/AmazingDM/github-webhook-to-telegram/issues).
