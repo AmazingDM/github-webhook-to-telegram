@@ -69,6 +69,13 @@ function isHookTarget(value: unknown): value is HookTarget {
   const target = value as Partial<HookTarget>;
   const validChatId =
     typeof target.chat_id === "string" || typeof target.chat_id === "number";
+  const validShowAuthor =
+    target.show_author === undefined || typeof target.show_author === "boolean";
 
-  return validChatId && typeof target.secret === "string" && target.secret.length > 0;
+  return (
+    validChatId &&
+    validShowAuthor &&
+    typeof target.secret === "string" &&
+    target.secret.length > 0
+  );
 }

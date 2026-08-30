@@ -55,6 +55,7 @@ export async function validateGitHubWebhook(
   return {
     ok: true,
     chatId: target.chat_id,
+    showAuthor: target.show_author !== false,
     payload,
     bodyText,
     event,

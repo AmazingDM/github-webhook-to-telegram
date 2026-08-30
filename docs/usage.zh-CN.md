@@ -51,6 +51,20 @@
 
 所以组织级配置会覆盖仓库级配置。
 
+可选字段 `show_author` 默认为 `true`。设为 `false` 时，该路由发到 Telegram 的消息会去掉人名：公共的 Actor 行、push 里每条 commit 的 Author 行、以及 pull request 的 Author 行。仓库名不动。必须是布尔值，其他类型会整份配置拒掉。
+
+```json
+{
+  "gh_webhooks": {
+    "your-name/your-repo": {
+      "chat_id": -1001234567890,
+      "secret": "repo-secret",
+      "show_author": false
+    }
+  }
+}
+```
+
 ## 3. Webhook Secret
 `secret` 不是 Telegram token。它用于校验 GitHub Webhook 签名。
 

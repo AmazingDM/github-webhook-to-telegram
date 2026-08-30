@@ -51,6 +51,36 @@ describe("formatters entrypoint", () => {
     expect(text).toContain("Fix &lt;bug&gt;");
     expect(text).toContain("<b>Commits</b> · 1");
     expect(text).toContain("Author: <code>dash</code>");
+    expect(text).toContain("<b>Actor</b> · <code>dash</code>");
+  });
+
+  it("omits actor and author lines when showAuthor is false", () => {
+    const payload = {
+      sender: { login: "dash" },
+      ref: "refs/heads/main",
+      repository: {
+        full_name: "Codertocat/Hello-World",
+        html_url: "https://github.com/Codertocat/Hello-World",
+        stargazers_count: 1,
+        forks_count: 2,
+      },
+      commits: [
+        {
+          id: "abcdef123456",
+          message: "Fix <bug>",
+          url: "https://github.com/Codertocat/Hello-World/commit/abcdef1",
+          author: { username: "dash" },
+        },
+      ],
+    };
+
+    const text = formatGitHubWebhook("push", payload, { showAuthor: false });
+
+    expect(text).toContain("🚀 <b>Push Update</b>");
+    expect(text).toContain("Fix &lt;bug&gt;");
+    expect(text).not.toContain("Actor");
+    expect(text).not.toContain("Author");
+    expect(text).not.toContain("dash");
   });
 
   it("formats pull request events with title links", () => {
@@ -75,6 +105,36 @@ describe("formatters entrypoint", () => {
     expect(text).toContain("<b>Action</b> · <code>opened</code>");
     expect(text).toContain('href="https://github.com/Codertocat/Hello-World/pull/7"');
     expect(text).toContain("Add feature");
+    expect(text).toContain("<b>Actor</b> · <code>dash</code>");
+    expect(text).toContain("<b>Author</b> · <code>dash</code>");
+  });
+
+  it("omits pull request actor and author when showAuthor is false", () => {
+    const text = formatGitHubWebhook(
+      "pull_request",
+      {
+        sender: { login: "dash" },
+        action: "opened",
+        number: 7,
+        repository: {
+          full_name: "Codertocat/Hello-World",
+          html_url: "https://github.com/Codertocat/Hello-World",
+          stargazers_count: 1,
+          forks_count: 2,
+        },
+        pull_request: {
+          html_url: "https://github.com/Codertocat/Hello-World/pull/7",
+          title: "Add feature",
+          user: { login: "dash" },
+        },
+      },
+      { showAuthor: false },
+    );
+
+    expect(text).toContain("Add feature");
+    expect(text).not.toContain("Actor");
+    expect(text).not.toContain("Author");
+    expect(text).not.toContain("dash");
   });
 
   it("returns null for unsupported events", () => {

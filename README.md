@@ -102,7 +102,7 @@ Matching order (first hit wins): `organization.login`, then `repository.full_nam
 }
 ```
 
-`secret` is the GitHub webhook secret, not `BOT_TOKEN`. A mismatch returns `403`. See [docs/usage.md](docs/usage.md).
+`secret` is the GitHub webhook secret, not `BOT_TOKEN`. A mismatch returns `403`. Optional `show_author` defaults to `true`; set `false` to omit actor and author names from that route's Telegram messages. See [docs/usage.md](docs/usage.md).
 
 ## Local development
 

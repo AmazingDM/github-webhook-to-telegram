@@ -21,6 +21,28 @@ describe("formatter modules", () => {
     expect(text).toContain("<b>Branch</b> · <code>main</code>");
     expect(text).toContain("<b>Commits</b> · 1");
     expect(text).toContain("Ship release");
+    expect(text).toContain("Author");
+  });
+
+  it("omits commit author lines when showAuthor is false", () => {
+    const text = formatPush(
+      {
+        sender: { login: "dash" },
+        ref: "refs/heads/main",
+        commits: [
+          {
+            id: "abcdef123456",
+            message: "Ship release",
+            url: "https://github.com/Codertocat/Hello-World/commit/abcdef1",
+            author: { username: "dash" },
+          },
+        ],
+      },
+      { showAuthor: false },
+    );
+
+    expect(text).toContain("Ship release");
+    expect(text).not.toContain("Author");
   });
 
   it("formats pull request details from the dedicated module", () => {

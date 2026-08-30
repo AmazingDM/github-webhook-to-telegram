@@ -1,7 +1,7 @@
 import type { GitHubPayload } from "../types";
-import { escapeHtml, formatField, formatMissing, formatRef } from "./shared";
+import { escapeHtml, formatField, formatMissing, formatRef, type FormatOptions } from "./shared";
 
-export function formatPush(payload: GitHubPayload): string {
+export function formatPush(payload: GitHubPayload, options?: FormatOptions): string {
   const commits = payload.commits ?? [];
   const lines = [formatField("Branch", `<code>${escapeHtml(formatRef(payload.ref))}</code>`)];
 
@@ -13,13 +13,15 @@ export function formatPush(payload: GitHubPayload): string {
   lines.push(`<b>Commits</b> · ${commits.length}`);
 
   for (const commit of commits) {
-    const author = commit.author.username ?? commit.author.name ?? "unknown";
     lines.push(
       `• <a href="${commit.url}"><code>${escapeHtml(
         commit.id.slice(0, 7),
       )}</code></a> ${escapeHtml(commit.message)}`,
     );
-    lines.push(`  └ Author: <code>${escapeHtml(author)}</code>`);
+    if (options?.showAuthor !== false) {
+      const author = commit.author.username ?? commit.author.name ?? "unknown";
+      lines.push(`  └ Author: <code>${escapeHtml(author)}</code>`);
+    }
   }
 
   return lines.join("\n");

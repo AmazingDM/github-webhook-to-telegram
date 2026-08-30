@@ -50,5 +50,6 @@ describe("github webhook validation", () => {
     expect(result.ok).toBe(true);
     expect(result.chatId).toBe(-1001234567890);
     expect(result.event).toBe("ping");
+    expect(result.showAuthor).toBe(true);
   });
 });

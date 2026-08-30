@@ -22,4 +22,38 @@ describe("config", () => {
     const target = resolveHookTarget(config, "Codertocat/Hello-World", "octo-org");
     expect(target?.secret).toBe("org-secret");
   });
+
+  it("接受可选的 show_author 布尔值", () => {
+    const config = parseHookConfig({
+      ...baseEnv,
+      HOOK_CONFIG_JSON: JSON.stringify({
+        gh_webhooks: {
+          "octo-org": {
+            chat_id: "@octo",
+            secret: "org-secret",
+            show_author: false,
+          },
+        },
+      }),
+    });
+
+    expect(config.gh_webhooks["octo-org"]?.show_author).toBe(false);
+  });
+
+  it("会拒绝非布尔的 show_author", () => {
+    expect(() =>
+      parseHookConfig({
+        ...baseEnv,
+        HOOK_CONFIG_JSON: JSON.stringify({
+          gh_webhooks: {
+            "octo-org": {
+              chat_id: "@octo",
+              secret: "org-secret",
+              show_author: "false",
+            },
+          },
+        }),
+      }),
+    ).toThrow(/结构不合法/);
+  });
 });

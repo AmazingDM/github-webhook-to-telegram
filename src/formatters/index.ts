@@ -8,9 +8,15 @@ import { formatPublicEvent } from "./public";
 import { formatPullRequest } from "./pull_request";
 import { formatPush } from "./push";
 import { formatStar } from "./star";
-import { buildMessage, escapeHtml, EVENT_META, formatRef } from "./shared";
-import type { Formatter } from "./shared";
 import type { GitHubPayload } from "../types";
+import {
+  buildMessage,
+  escapeHtml,
+  EVENT_META,
+  formatRef,
+  type FormatOptions,
+  type Formatter,
+} from "./shared";
 
 const EVENT_FORMATTERS: Record<string, Formatter> = {
   create: formatCreate,
@@ -31,6 +37,7 @@ const EVENT_FORMATTERS: Record<string, Formatter> = {
 export function formatGitHubWebhook(
   event: string,
   payload: GitHubPayload,
+  options?: FormatOptions,
 ): string | null {
   const formatter = EVENT_FORMATTERS[event];
   const meta = EVENT_META[event];
@@ -38,9 +45,12 @@ export function formatGitHubWebhook(
     return null;
   }
 
+  const showAuthor = options?.showAuthor !== false;
+
   return buildMessage({
     payload,
-    details: formatter(payload),
+    details: formatter(payload, { showAuthor }),
+    showAuthor,
     ...meta,
   });
 }

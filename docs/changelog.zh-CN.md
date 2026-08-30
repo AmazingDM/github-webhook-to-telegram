@@ -3,6 +3,7 @@
 > English: [changelog.md](changelog.md)
 
 ## 当前版本
+- 每个转发目标可设 `show_author: false`，Telegram 消息将不带 Actor / Author 人名。
 - 推荐使用 fork + GitHub Actions Secrets + 手动发布或 tag 发布的部署方式。
 - 普通提交只运行检查，手动运行 deploy workflow 或推送 Git tag 才发布到 Cloudflare Worker。
 - fork 仓库可以使用每日 `Sync Upstream` workflow，在安全时快进同步上游。

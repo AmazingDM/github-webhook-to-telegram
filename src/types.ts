@@ -12,6 +12,7 @@ export interface Env {
 export interface HookTarget {
   chat_id: string | number;
   secret: string;
+  show_author?: boolean;
 }
 
 /**
@@ -79,6 +80,7 @@ export interface GitHubPayload {
 export interface ValidationResult {
   ok: boolean;
   chatId?: string | number;
+  showAuthor?: boolean;
   payload?: GitHubPayload;
   bodyText?: string;
   event?: string;

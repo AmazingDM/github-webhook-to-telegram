@@ -102,7 +102,7 @@ Active: checked
 }
 ```
 
-`secret` 是 GitHub Webhook Secret，不是 `BOT_TOKEN`。对不上会返回 `403`。详见 [docs/usage.zh-CN.md](docs/usage.zh-CN.md)。
+`secret` 是 GitHub Webhook Secret，不是 `BOT_TOKEN`。对不上会返回 `403`。可选 `show_author` 默认为 `true`；设为 `false` 时该路由发到 Telegram 的消息不带 Actor / Author 人名。详见 [docs/usage.zh-CN.md](docs/usage.zh-CN.md)。
 
 ## 本地开发
 

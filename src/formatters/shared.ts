@@ -1,6 +1,10 @@
 import type { GitHubPayload } from "../types";
 
-export type Formatter = (payload: GitHubPayload) => string | null;
+export interface FormatOptions {
+  showAuthor?: boolean;
+}
+
+export type Formatter = (payload: GitHubPayload, options?: FormatOptions) => string | null;
 
 export interface EventMeta {
   icon: string;
@@ -25,12 +29,16 @@ export function buildMessage({
   label,
   payload,
   details,
-}: EventMeta & { payload: GitHubPayload; details: string | null }): string {
+  showAuthor = true,
+}: EventMeta & { payload: GitHubPayload; details: string | null } & FormatOptions): string {
   const lines = [
     `${icon} <b>${label}</b>`,
     formatRepositoryLine(payload),
-    formatActorLine(payload),
   ];
+
+  if (showAuthor) {
+    lines.push(formatActorLine(payload));
+  }
 
   if (payload.action) {
     lines.push(formatField("Action", `<code>${escapeHtml(payload.action)}</code>`));

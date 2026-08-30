@@ -3,6 +3,7 @@
 > Simplified Chinese: [changelog.zh-CN.md](changelog.zh-CN.md)
 
 ## Current Version
+- Each hook target may set `show_author: false` to omit actor and author names from Telegram messages.
 - Recommended deployment is fork + GitHub Actions secrets + manual release or tag release.
 - Normal commits only run checks. Manual deploy workflow runs or Git tag pushes deploy to Cloudflare Worker.
 - Forks can use the daily `Sync Upstream` workflow to fast-forward to upstream when safe.

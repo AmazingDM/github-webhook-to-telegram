@@ -38,7 +38,9 @@ export async function handleRequest(request: Request, env: Env): Promise<Respons
     return new Response("403: Forbidden", { status: 403 });
   }
 
-  const message = formatGitHubWebhook(validation.event ?? "", validation.payload);
+  const message = formatGitHubWebhook(validation.event ?? "", validation.payload, {
+    showAuthor: validation.showAuthor !== false,
+  });
   if (!message) {
     return new Response("Send to Telegram: nothing to send");
   }

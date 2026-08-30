@@ -51,6 +51,20 @@ Matching order:
 
 Organization routes override repository routes.
 
+Optional `show_author` defaults to `true`. Set it to `false` to omit person names from Telegram messages for that route: the shared `Actor` line, each push commit `Author` line, and the pull request `Author` line. Repository names are unchanged. The value must be a boolean; any other type rejects the whole config.
+
+```json
+{
+  "gh_webhooks": {
+    "your-name/your-repo": {
+      "chat_id": -1001234567890,
+      "secret": "repo-secret",
+      "show_author": false
+    }
+  }
+}
+```
+
 ## 3. Webhook Secret
 `secret` is not the Telegram token. It verifies GitHub Webhook signatures.
 
